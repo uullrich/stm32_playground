@@ -12,6 +12,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -28,8 +32,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Enable CMake support for ASM and C languages
-enable_language(C ASM)
+# Enable CMake support for ASM, C and C++ languages
+enable_language(C CXX ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
@@ -44,12 +48,12 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    Core/Src/app.c
-    Core/Src/button.c
-    Core/Src/can_bus.c
-    Core/Src/can_queue.c
-    Core/Src/led.c
-    Core/Src/logger.c
+    Core/Src/app.cpp
+    Core/Src/app_facade.cpp
+    Core/Src/button.cpp
+    Core/Src/can_bus.cpp
+    Core/Src/led.cpp
+    Core/Src/logger.cpp
 )
 
 # Add include paths
