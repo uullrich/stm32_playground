@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +48,7 @@ TIM_HandleTypeDef htim6;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-volatile uint8_t leds_active = 1;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,19 +105,7 @@ int main(void)
   MX_TIM3_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim6);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-
-  CAN_FilterTypeDef canFilter = {0};
-  canFilter.FilterBank = 0;
-  canFilter.FilterMode = CAN_FILTERMODE_IDMASK;
-  canFilter.FilterScale = CAN_FILTERSCALE_32BIT;
-  canFilter.FilterFIFOAssignment = CAN_RX_FIFO0;
-  canFilter.FilterActivation = ENABLE;
-  HAL_CAN_ConfigFilter(&hcan1, &canFilter);
-
-  HAL_CAN_Start(&hcan1);
-  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+  app_init(&hcan1, &htim3, &htim6, &huart3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -127,17 +115,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    CAN_TxHeaderTypeDef txHeader = {0};
-    uint8_t txData[8] = {0x01, 0x02, 0x03, 0x04};
-    uint32_t txMailbox;
-
-    txHeader.StdId = 0x123;
-    txHeader.IDE = CAN_ID_STD;
-    txHeader.RTR = CAN_RTR_DATA;
-    txHeader.DLC = 4;
-
-    HAL_CAN_AddTxMessage(&hcan1, &txHeader, txData, &txMailbox);
-    HAL_Delay(500);
+    app_run();
   }
   /* USER CODE END 3 */
 }
@@ -403,47 +381,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-  CAN_RxHeaderTypeDef rxHeader;
-  uint8_t rxData[8];
 
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK) {
-    // set breakpoint here to inspect rxHeader.StdId and rxData
-  }
-}
-
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  if (GPIO_Pin == USER_Btn_Pin) {
-    leds_active = !leds_active;
-    if (!leds_active) {
-      HAL_GPIO_WritePin(GPIOB, LD2_Pin|LD3_Pin, GPIO_PIN_RESET);
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
-    }
-  }
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  if (htim->Instance == TIM6) {
-    if (!leds_active) return;
-
-    static uint32_t c2;
-    static uint32_t c3;
-    static int32_t brightness = 0;
-    static int32_t step = 10;
-
-    if (++c2 >= 3)  { c2 = 0; HAL_GPIO_TogglePin(GPIOB, LD2_Pin); }
-    if (++c3 >= 7)  { c3 = 0; HAL_GPIO_TogglePin(GPIOB, LD3_Pin); }
-
-    brightness += step;
-    if (brightness >= 999) { brightness = 999; step = -10; }
-    else if (brightness <= 0) { brightness = 0; step = 10; }
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, (uint32_t)brightness);
-  }
-}
 /* USER CODE END 4 */
 
  /* MPU Configuration */
