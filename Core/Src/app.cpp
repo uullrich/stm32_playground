@@ -9,13 +9,14 @@ namespace pg2 {
 App::App(CAN_HandleTypeDef& hcan,
          TIM_HandleTypeDef& htim_pwm,
          TIM_HandleTypeDef& htim_tick,
-         UART_HandleTypeDef& huart) noexcept
+         ILogger&           logger) noexcept
     : ld2_{GPIOB, LD2_Pin}
     , ld3_{GPIOB, LD3_Pin}
     , ld1_{&htim_pwm, TIM_CHANNEL_3, kPwmPeriod}
-    , button_{USER_Btn_Pin, kButtonDebounceMs, *this}
+    , button_{USER_Btn_Pin, kButtonDebounceMs,
+              [this]() noexcept { on_button_pressed(); }}
     , can_bus_{hcan}
-    , logger_{huart}
+    , logger_{logger}
     , tick_timer_{&htim_tick}
 {
 }

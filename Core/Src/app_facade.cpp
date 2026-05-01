@@ -1,14 +1,16 @@
 // C-linkage shim that lets CubeMX-generated main.c drive the C++ application
-// without including any C++ headers. Owns the single global App instance and
-// dispatches HAL weak callbacks into it.
+// without including any C++ headers. Owns the singletons (logger + app) and
+// dispatches HAL weak callbacks into the App.
 
 #include "app.hpp"
+#include "logger.hpp"
 
 #include <optional>
 
 namespace {
 
-std::optional<pg2::App> g_app;
+std::optional<pg2::UartLogger> g_logger;
+std::optional<pg2::App>        g_app;
 
 }  // namespace
 
@@ -19,7 +21,8 @@ void app_init(CAN_HandleTypeDef* hcan,
               TIM_HandleTypeDef* htim_tick,
               UART_HandleTypeDef* huart)
 {
-    g_app.emplace(*hcan, *htim_pwm, *htim_tick, *huart);
+    g_logger.emplace(*huart);
+    g_app.emplace(*hcan, *htim_pwm, *htim_tick, *g_logger);
     g_app->init();
 }
 

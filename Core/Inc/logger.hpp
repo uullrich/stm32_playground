@@ -6,21 +6,28 @@
 
 namespace pg2 {
 
-class Logger {
+// Abstract log sink. Implementations only need to provide write(); the
+// printf-style formatting is provided in the base class for free.
+class ILogger {
 public:
-    explicit Logger(UART_HandleTypeDef& uart) noexcept;
+    virtual ~ILogger() = default;
 
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
+    virtual void write(std::string_view text) noexcept = 0;
 
-    void write(std::string_view text) noexcept;
-
-    // printf-style formatted output. Output truncates silently at the internal
-    // buffer size; bound is enforced by snprintf.
     void printf(const char* fmt, ...) noexcept __attribute__((format(printf, 2, 3)));
+};
+
+// UART-backed implementation of ILogger.
+class UartLogger final : public ILogger {
+public:
+    explicit UartLogger(UART_HandleTypeDef& uart) noexcept;
+
+    UartLogger(const UartLogger&) = delete;
+    UartLogger& operator=(const UartLogger&) = delete;
+
+    void write(std::string_view text) noexcept override;
 
 private:
-    static constexpr std::size_t kBufferSize = 128;
     static constexpr std::uint32_t kTxTimeoutMs = 100;
 
     UART_HandleTypeDef* uart_;

@@ -1,11 +1,15 @@
 #include "button.hpp"
 
+#include <utility>
+
 namespace pg2 {
 
 Button::Button(std::uint16_t pin,
                std::uint32_t debounce_ms,
-               IButtonHandler& handler) noexcept
-    : pin_{pin}, debounce_ms_{debounce_ms}, handler_{&handler}
+               PressHandler  on_press) noexcept
+    : pin_{pin}
+    , debounce_ms_{debounce_ms}
+    , on_press_{std::move(on_press)}
 {
 }
 
@@ -17,7 +21,7 @@ void Button::handle_exti(std::uint16_t triggered_pin) noexcept
     if ((now - last_press_tick_) < debounce_ms_) return;
     last_press_tick_ = now;
 
-    handler_->on_button_pressed();
+    if (on_press_) on_press_();
 }
 
 }  // namespace pg2

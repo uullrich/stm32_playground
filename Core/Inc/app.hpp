@@ -10,13 +10,13 @@ namespace pg2 {
 
 // Top-level application object. Owns every peripheral wrapper, drives the LED
 // animation from a tick callback, sends a periodic heartbeat frame, and prints
-// every received CAN frame over UART.
-class App final : public IButtonHandler {
+// every received CAN frame via the injected logger.
+class App final {
 public:
     App(CAN_HandleTypeDef& hcan,
         TIM_HandleTypeDef& htim_pwm,
         TIM_HandleTypeDef& htim_tick,
-        UART_HandleTypeDef& huart) noexcept;
+        ILogger&           logger) noexcept;
 
     App(const App&) = delete;
     App& operator=(const App&) = delete;
@@ -32,20 +32,18 @@ public:
     void on_tick(TIM_HandleTypeDef* htim) noexcept;
     void on_exti(std::uint16_t pin) noexcept;
 
-    // IButtonHandler
-    void on_button_pressed() noexcept override;
-
 private:
+    void on_button_pressed() noexcept;
     void animate_leds() noexcept;
     void send_heartbeat() noexcept;
     void process_received_messages() noexcept;
     void log_received(const CanMessage& msg) noexcept;
 
-    static constexpr std::uint32_t kPwmPeriod        = 999;
-    static constexpr std::int32_t  kFadeStep         = 10;
-    static constexpr std::uint32_t kLd2TickDivider   = 3;
-    static constexpr std::uint32_t kLd3TickDivider   = 7;
-    static constexpr std::uint32_t kButtonDebounceMs = 50;
+    static constexpr std::uint32_t kPwmPeriod         = 999;
+    static constexpr std::int32_t  kFadeStep          = 10;
+    static constexpr std::uint32_t kLd2TickDivider    = 3;
+    static constexpr std::uint32_t kLd3TickDivider    = 7;
+    static constexpr std::uint32_t kButtonDebounceMs  = 50;
     static constexpr std::uint32_t kHeartbeatPeriodMs = 500;
 
     DigitalLed ld2_;
@@ -53,7 +51,7 @@ private:
     PwmLed     ld1_;
     Button     button_;
     CanBus     can_bus_;
-    Logger     logger_;
+    ILogger&   logger_;
 
     TIM_HandleTypeDef* tick_timer_;
     bool          leds_active_{true};
