@@ -38,6 +38,7 @@ private:
     void send_heartbeat() noexcept;
     void process_received_messages() noexcept;
     void log_received(const CanMessage& msg) noexcept;
+    void log_boot_banner(CanBus::Status can_status) noexcept;
 
     static constexpr std::uint32_t kPwmPeriod         = 999;
     static constexpr std::int32_t  kFadeStep          = 10;

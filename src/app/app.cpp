@@ -24,9 +24,19 @@ App::App(CAN_HandleTypeDef& hcan,
 void App::init() noexcept
 {
     ld1_.start();
-    (void)can_bus_.init();
+    const auto can_status = can_bus_.init();
     HAL_TIM_Base_Start_IT(tick_timer_);
-    logger_.printf("\r\n=== Playground2 booted ===\r\n");
+    log_boot_banner(can_status);
+}
+
+void App::log_boot_banner(CanBus::Status can_status) noexcept
+{
+    using enum CanBus::Status;
+    const char* can_str = "OK";
+    if      (can_status == FilterError) can_str = "ERR:filter";
+    else if (can_status == StartError)  can_str = "ERR:start";
+    else if (can_status == NotifyError) can_str = "ERR:notify";
+    logger_.printf("\r\n=== Playground2 booted === CAN:%s\r\n", can_str);
 }
 
 void App::run() noexcept

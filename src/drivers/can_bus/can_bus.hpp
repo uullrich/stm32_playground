@@ -13,7 +13,9 @@ public:
     enum class Status {
         Ok,
         TxQueueFull,
-        HalError,
+        FilterError,
+        StartError,
+        NotifyError,
     };
 
     explicit CanBus(CAN_HandleTypeDef& hcan) noexcept;

@@ -49,14 +49,14 @@ CanBus::Status CanBus::init() noexcept
     filter.FilterScale         = CAN_FILTERSCALE_32BIT;
     filter.FilterFIFOAssignment = CAN_RX_FIFO0;
     filter.FilterActivation    = ENABLE;
-    if (HAL_CAN_ConfigFilter(hcan_, &filter) != HAL_OK) return Status::HalError;
+    if (HAL_CAN_ConfigFilter(hcan_, &filter) != HAL_OK) return Status::FilterError;
 
-    if (HAL_CAN_Start(hcan_) != HAL_OK) return Status::HalError;
+    if (HAL_CAN_Start(hcan_) != HAL_OK) return Status::StartError;
 
     if (HAL_CAN_ActivateNotification(hcan_,
             CAN_IT_RX_FIFO0_MSG_PENDING |
             CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
-        return Status::HalError;
+        return Status::NotifyError;
     }
 
     return Status::Ok;

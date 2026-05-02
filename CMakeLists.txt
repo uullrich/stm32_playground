@@ -48,22 +48,22 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    components/app/app.cpp
-    components/app/app_facade.cpp
-    components/drivers/button/button.cpp
-    components/drivers/can_bus/can_bus.cpp
-    components/drivers/led/led.cpp
-    components/drivers/logger/logger.cpp
+    src/app/app.cpp
+    src/app/app_facade.cpp
+    src/drivers/button/button.cpp
+    src/drivers/can_bus/can_bus.cpp
+    src/drivers/led/led.cpp
+    src/drivers/logger/logger.cpp
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    components/app
-    components/drivers/button
-    components/drivers/can_bus
-    components/drivers/led
-    components/drivers/logger
-    components/util
+    src/app
+    src/drivers/button
+    src/drivers/can_bus
+    src/drivers/led
+    src/drivers/logger
+    src/util
 )
 
 # Add project symbols (macros)
