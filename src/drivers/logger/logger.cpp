@@ -4,7 +4,7 @@
 #include <cstdarg>
 #include <cstdio>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 namespace {
 constexpr std::size_t kFormatBufferSize = 128;
@@ -40,4 +40,4 @@ void UartLogger::write(std::string_view text) noexcept
                       kTxTimeoutMs);
 }
 
-}  // namespace pg2
+}  // namespace uullrich::playground

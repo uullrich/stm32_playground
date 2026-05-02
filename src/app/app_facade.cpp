@@ -9,8 +9,8 @@
 
 namespace {
 
-std::optional<pg2::UartLogger> g_logger;
-std::optional<pg2::App>        g_app;
+std::optional<uullrich::playground::UartLogger> g_logger;
+std::optional<uullrich::playground::App>        g_app;
 
 }  // namespace
 

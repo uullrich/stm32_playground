@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 App::App(CAN_HandleTypeDef& hcan,
          TIM_HandleTypeDef& htim_pwm,
@@ -131,4 +131,4 @@ void App::log_received(const CanMessage& msg) noexcept
                    payload);
 }
 
-}  // namespace pg2
+}  // namespace uullrich::playground

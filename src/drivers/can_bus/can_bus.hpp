@@ -4,7 +4,7 @@
 #include "ring_buffer.hpp"
 #include "stm32f7xx_hal.h"
 
-namespace pg2 {
+namespace uullrich::playground {
 
 class CanBus {
 public:
@@ -48,4 +48,4 @@ private:
     RingBuffer<CanMessage, kQueueSize> tx_queue_{};
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground

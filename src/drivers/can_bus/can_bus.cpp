@@ -3,7 +3,7 @@
 #include <array>
 #include <cstring>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 namespace {
 
@@ -125,7 +125,7 @@ void CanBus::on_tx_complete() noexcept
     drain_tx_queue();
 }
 
-}  // namespace pg2
+}  // namespace uullrich::playground
 
 // HAL weak-callback overrides — must keep C linkage so the linker matches the
 // declarations in stm32f7xx_hal_can.c.
@@ -133,22 +133,22 @@ extern "C" {
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan)
 {
-    if (auto* bus = pg2::find_bus(hcan)) bus->on_rx();
+    if (auto* bus = uullrich::playground::find_bus(hcan)) bus->on_rx();
 }
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan)
 {
-    if (auto* bus = pg2::find_bus(hcan)) bus->on_tx_complete();
+    if (auto* bus = uullrich::playground::find_bus(hcan)) bus->on_tx_complete();
 }
 
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef* hcan)
 {
-    if (auto* bus = pg2::find_bus(hcan)) bus->on_tx_complete();
+    if (auto* bus = uullrich::playground::find_bus(hcan)) bus->on_tx_complete();
 }
 
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef* hcan)
 {
-    if (auto* bus = pg2::find_bus(hcan)) bus->on_tx_complete();
+    if (auto* bus = uullrich::playground::find_bus(hcan)) bus->on_tx_complete();
 }
 
 }  // extern "C"

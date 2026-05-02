@@ -6,7 +6,7 @@
 #include <concepts>
 #include <cstdint>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 // Lock-free single-producer / single-consumer ring buffer.
 //
@@ -64,4 +64,4 @@ private:
     std::atomic<std::uint32_t> tail_{0};
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground

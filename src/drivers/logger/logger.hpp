@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 // Abstract log sink. Implementations only need to provide write(); the
 // printf-style formatting is provided in the base class for free.
@@ -33,4 +33,4 @@ private:
     UART_HandleTypeDef* uart_;
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground

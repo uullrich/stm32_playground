@@ -6,7 +6,7 @@
 
 namespace {
 
-using pg2::RingBuffer;
+using uullrich::playground::RingBuffer;
 
 // ---------------------------------------------------------------------------
 // Fixture: a small int-typed ring buffer to keep test arithmetic readable.

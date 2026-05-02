@@ -88,13 +88,13 @@ power-on
               ├── HAL_Init / SystemClock_Config
               ├── MX_*_Init                       (peripheral init, generated)
               ├── app_init(&hcan1, &htim3, &htim6, &huart3)
-              │     └── pg2::App::init()          (constructed in std::optional<App>)
+              │     └── uullrich::playground::App::init()          (constructed in std::optional<App>)
               │           ├── CanBus::init()      filters + start + IRQs
               │           ├── PwmLed::start()
               │           ├── HAL_TIM_Base_Start_IT(htim_tick)
               │           └── Logger::printf("=== stm32_playground booted ===")
               └── while (1) app_run()
-                    └── pg2::App::run()
+                    └── uullrich::playground::App::run()
                           ├── process_received_messages()  drain RX queue → log over UART
                           └── send_heartbeat() every 500 ms
 ```
@@ -112,22 +112,22 @@ HAL weak callbacks have C linkage and only receive a HAL handle. We override the
 
 Two routing patterns are used:
 
-- **Single-app dispatch**: the unique `App` lives in `std::optional<pg2::App>` inside `app_facade.cpp`; EXTI and TIM callbacks call into it directly.
+- **Single-app dispatch**: the unique `App` lives in `std::optional<uullrich::playground::App>` inside `app_facade.cpp`; EXTI and TIM callbacks call into it directly.
 - **Per-handle registry**: `CanBus` instances register themselves in a small static array. CAN callbacks look up the instance whose internal `hcan_` matches the handle the HAL gave them. Scales to multiple CAN controllers.
 
 ### Component breakdown
 
 | Component                     | Type              | Role                                                                            |
 | ----------------------------- | ----------------- | ------------------------------------------------------------------------------- |
-| `pg2::App`                    | class (`final`)   | Composes everything; owns LEDs, button, CAN, logger; drives the main loop.      |
-| `pg2::DigitalLed`             | class             | Thin GPIO wrapper (`HAL_GPIO_*`).                                               |
-| `pg2::PwmLed`                 | class             | Thin PWM wrapper (`__HAL_TIM_SET_COMPARE`).                                     |
-| `pg2::Button`                 | class             | Pin + debounce window + `std::function<void()>` press handler.                  |
-| `pg2::ILogger`                | interface         | Abstract sink. Provides non-virtual `printf()` that formats and calls `write`.  |
-| `pg2::UartLogger`             | class (`final`)   | `ILogger` implementation backed by `HAL_UART_Transmit`.                         |
-| `pg2::CanBus`                 | class             | HAL_CAN wrapper; owns RX + TX `RingBuffer<CanMessage, 16>`.                     |
-| `pg2::CanMessage`             | struct            | POD frame: id, std::array<uint8_t,8>, length, extended/remote flags.            |
-| `pg2::RingBuffer<T, N>`       | class template    | Lock-free single-producer / single-consumer FIFO. Power-of-two capacity.        |
+| `uullrich::playground::App`                    | class (`final`)   | Composes everything; owns LEDs, button, CAN, logger; drives the main loop.      |
+| `uullrich::playground::DigitalLed`             | class             | Thin GPIO wrapper (`HAL_GPIO_*`).                                               |
+| `uullrich::playground::PwmLed`                 | class             | Thin PWM wrapper (`__HAL_TIM_SET_COMPARE`).                                     |
+| `uullrich::playground::Button`                 | class             | Pin + debounce window + `std::function<void()>` press handler.                  |
+| `uullrich::playground::ILogger`                | interface         | Abstract sink. Provides non-virtual `printf()` that formats and calls `write`.  |
+| `uullrich::playground::UartLogger`             | class (`final`)   | `ILogger` implementation backed by `HAL_UART_Transmit`.                         |
+| `uullrich::playground::CanBus`                 | class             | HAL_CAN wrapper; owns RX + TX `RingBuffer<CanMessage, 16>`.                     |
+| `uullrich::playground::CanMessage`             | struct            | POD frame: id, std::array<uint8_t,8>, length, extended/remote flags.            |
+| `uullrich::playground::RingBuffer<T, N>`       | class template    | Lock-free single-producer / single-consumer FIFO. Power-of-two capacity.        |
 
 ### Design choices
 

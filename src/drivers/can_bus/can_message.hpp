@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 struct CanMessage {
     static constexpr std::size_t kMaxLen = 8;
@@ -15,4 +15,4 @@ struct CanMessage {
     bool remote{false};
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground

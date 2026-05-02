@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 class Button {
 public:
@@ -28,4 +28,4 @@ private:
     PressHandler  on_press_;
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground

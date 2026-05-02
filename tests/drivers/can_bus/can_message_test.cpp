@@ -4,7 +4,7 @@
 
 namespace {
 
-using pg2::CanMessage;
+using uullrich::playground::CanMessage;
 
 TEST(CanMessageTest, MaxLenMatchesCanFdSize) {
     EXPECT_EQ(CanMessage::kMaxLen, 8u);

@@ -3,7 +3,7 @@
 #include "stm32f7xx_hal.h"
 #include <cstdint>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 class DigitalLed {
 public:
@@ -41,4 +41,4 @@ private:
     std::uint32_t period_;
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground

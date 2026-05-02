@@ -11,7 +11,7 @@ namespace {
 // class's printf() produced. This is the standard pattern for testing an
 // abstract interface - implement it minimally for the test, then exercise
 // the surface that lives in the base class.
-class CapturingLogger final : public pg2::ILogger {
+class CapturingLogger final : public uullrich::playground::ILogger {
 public:
     void write(std::string_view text) noexcept override {
         captured_.append(text);

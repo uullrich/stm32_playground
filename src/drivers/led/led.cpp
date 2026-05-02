@@ -1,6 +1,6 @@
 #include "led.hpp"
 
-namespace pg2 {
+namespace uullrich::playground {
 
 DigitalLed::DigitalLed(GPIO_TypeDef* port, std::uint16_t pin) noexcept
     : port_{port}, pin_{pin}
@@ -49,4 +49,4 @@ void PwmLed::off() noexcept
     __HAL_TIM_SET_COMPARE(timer_, channel_, 0);
 }
 
-}  // namespace pg2
+}  // namespace uullrich::playground

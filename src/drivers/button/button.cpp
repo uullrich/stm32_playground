@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace pg2 {
+namespace uullrich::playground {
 
 Button::Button(std::uint16_t pin,
                std::uint32_t debounce_ms,
@@ -24,4 +24,4 @@ void Button::handle_exti(std::uint16_t triggered_pin) noexcept
     if (on_press_) on_press_();
 }
 
-}  // namespace pg2
+}  // namespace uullrich::playground

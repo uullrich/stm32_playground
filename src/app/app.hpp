@@ -6,7 +6,7 @@
 #include "logger.hpp"
 #include "stm32f7xx_hal.h"
 
-namespace pg2 {
+namespace uullrich::playground {
 
 // Top-level application object. Owns every peripheral wrapper, drives the LED
 // animation from a tick callback, sends a periodic heartbeat frame, and prints
@@ -59,4 +59,4 @@ private:
     std::uint32_t last_heartbeat_tick_{0};
 };
 
-}  // namespace pg2
+}  // namespace uullrich::playground
