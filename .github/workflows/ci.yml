@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S tests -B build/tests -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build/tests --parallel
+
+      - name: Run
+        run: ctest --test-dir build/tests --output-on-failure
+
+  firmware:
+    name: Firmware Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y gcc-arm-none-eabi ninja-build
+
+      - name: Configure
+        run: cmake --preset Debug
+
+      - name: Build
+        run: cmake --build --preset Debug --parallel
+
+      - name: Upload ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-debug
+          path: build/Debug/Playground2.elf
