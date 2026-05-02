@@ -43,4 +43,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firmware-debug
-          path: build/Debug/Playground2.elf
+          path: build/Debug/stm32_playground.elf

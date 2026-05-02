@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.22)
 #   cmake --build build/tests
 #   ctest --test-dir build/tests --output-on-failure
 
-project(playground2_tests CXX)
+project(stm32_playground_tests CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

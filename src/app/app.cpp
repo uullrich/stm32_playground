@@ -36,7 +36,7 @@ void App::log_boot_banner(CanBus::Status can_status) noexcept
     if      (can_status == FilterError) can_str = "ERR:filter";
     else if (can_status == StartError)  can_str = "ERR:start";
     else if (can_status == NotifyError) can_str = "ERR:notify";
-    logger_.printf("\r\n=== Playground2 booted === CAN:%s\r\n", can_str);
+    logger_.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", can_str);
 }
 
 void App::run() noexcept

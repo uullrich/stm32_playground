@@ -1,4 +1,4 @@
-# Playground2
+# stm32_playground
 
 STM32 firmware playground built around modern C++20 wrappers over the STMicro HAL.
 Drives the onboard LEDs from a timer ISR, debounces the USER button through EXTI,
@@ -46,7 +46,7 @@ sends periodic CAN frames in loopback mode, and prints received frames over UART
 ## Repository layout
 
 ```
-Playground2/
+stm32_playground/
 ├── Core/                       ← CubeMX-generated; do not edit by hand
 │   ├── Inc/  main.h, stm32f7xx_hal_conf.h, stm32f7xx_it.h
 │   └── Src/  main.c, stm32f7xx_*.c, sys{calls,mem}.c
@@ -70,7 +70,7 @@ Playground2/
 ├── cmake/                      ← cross-compile toolchain files
 ├── CMakeLists.txt              ← top-level firmware build
 ├── CMakePresets.json
-└── Playground2.ioc             ← CubeMX project file
+└── stm32_playground.ioc             ← CubeMX project file
 ```
 
 `Core/` and `Drivers/` are owned by STM32CubeMX; regenerating from the `.ioc` overwrites them. All hand-written code lives under [src/](src/) and is regeneration-safe.
@@ -92,7 +92,7 @@ power-on
               │           ├── CanBus::init()      filters + start + IRQs
               │           ├── PwmLed::start()
               │           ├── HAL_TIM_Base_Start_IT(htim_tick)
-              │           └── Logger::printf("=== Playground2 booted ===")
+              │           └── Logger::printf("=== stm32_playground booted ===")
               └── while (1) app_run()
                     └── pg2::App::run()
                           ├── process_received_messages()  drain RX queue → log over UART
@@ -153,10 +153,10 @@ cmake --preset Debug          # one-time configure
 cmake --build build/Debug     # build
 ```
 
-Output: `build/Debug/Playground2.elf` (with companion `.map`). Flash via your IDE's debugger, or:
+Output: `build/Debug/stm32_playground.elf` (with companion `.map`). Flash via your IDE's debugger, or:
 
 ```bash
-STM32_Programmer_CLI -c port=SWD -d build/Debug/Playground2.elf -rst
+STM32_Programmer_CLI -c port=SWD -d build/Debug/stm32_playground.elf -rst
 ```
 
 ### Unit tests
@@ -190,7 +190,7 @@ After flashing:
    Expected output:
 
    ```
-   === Playground2 booted ===
+   === stm32_playground booted ===
    RX  id=0x123  dlc=4  data=[DE AD BE 00]
    RX  id=0x123  dlc=4  data=[DE AD BE 01]
    RX  id=0x123  dlc=4  data=[DE AD BE 02]
