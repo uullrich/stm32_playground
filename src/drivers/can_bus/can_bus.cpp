@@ -51,7 +51,9 @@ CanBus::Status CanBus::init() noexcept
     filter.FilterActivation    = ENABLE;
     if (HAL_CAN_ConfigFilter(hcan_, &filter) != HAL_OK) return Status::FilterError;
 
-    if (HAL_CAN_Start(hcan_) != HAL_OK) return Status::StartError;
+    if (HAL_CAN_Start(hcan_) != HAL_OK) {
+        return Status::StartError;
+    }
 
     if (HAL_CAN_ActivateNotification(hcan_,
             CAN_IT_RX_FIFO0_MSG_PENDING |
