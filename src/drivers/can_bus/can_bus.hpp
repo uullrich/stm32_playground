@@ -4,13 +4,16 @@
 #include "ring_buffer.hpp"
 #include "stm32f7xx_hal.h"
 
-namespace uullrich::playground {
+namespace uullrich::playground
+{
 
-class CanBus {
-public:
+class CanBus
+{
+  public:
     static constexpr std::size_t kQueueSize = 16;
 
-    enum class Status {
+    enum class Status
+    {
         Ok,
         TxQueueFull,
         FilterError,
@@ -40,7 +43,7 @@ public:
     void on_rx() noexcept;
     void on_tx_complete() noexcept;
 
-private:
+  private:
     void drain_tx_queue() noexcept;
 
     CAN_HandleTypeDef* hcan_;
@@ -48,4 +51,4 @@ private:
     RingBuffer<CanMessage, kQueueSize> tx_queue_{};
 };
 
-}  // namespace uullrich::playground
+}

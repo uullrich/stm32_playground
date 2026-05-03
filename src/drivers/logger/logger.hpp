@@ -4,12 +4,14 @@
 #include <cstdint>
 #include <string_view>
 
-namespace uullrich::playground {
+namespace uullrich::playground
+{
 
 // Abstract log sink. Implementations only need to provide write(); the
 // printf-style formatting is provided in the base class for free.
-class ILogger {
-public:
+class ILogger
+{
+  public:
     virtual ~ILogger() = default;
 
     virtual void write(std::string_view text) noexcept = 0;
@@ -18,8 +20,9 @@ public:
 };
 
 // UART-backed implementation of ILogger.
-class UartLogger final : public ILogger {
-public:
+class UartLogger final : public ILogger
+{
+  public:
     explicit UartLogger(UART_HandleTypeDef& uart) noexcept;
 
     UartLogger(const UartLogger&) = delete;
@@ -27,10 +30,10 @@ public:
 
     void write(std::string_view text) noexcept override;
 
-private:
+  private:
     static constexpr std::uint32_t kTxTimeoutMs = 100;
 
     UART_HandleTypeDef* uart_;
 };
 
-}  // namespace uullrich::playground
+}

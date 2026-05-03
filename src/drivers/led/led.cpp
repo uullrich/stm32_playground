@@ -1,9 +1,9 @@
 #include "led.hpp"
 
-namespace uullrich::playground {
+namespace uullrich::playground
+{
 
-DigitalLed::DigitalLed(GPIO_TypeDef* port, std::uint16_t pin) noexcept
-    : port_{port}, pin_{pin}
+DigitalLed::DigitalLed(GPIO_TypeDef* port, std::uint16_t pin) noexcept : port_{port}, pin_{pin}
 {
     off();
 }
@@ -40,7 +40,8 @@ void PwmLed::start() noexcept
 
 void PwmLed::set_brightness(std::uint32_t pulse) noexcept
 {
-    if (pulse > period_) pulse = period_;
+    if (pulse > period_)
+        pulse = period_;
     __HAL_TIM_SET_COMPARE(timer_, channel_, pulse);
 }
 
@@ -49,4 +50,4 @@ void PwmLed::off() noexcept
     __HAL_TIM_SET_COMPARE(timer_, channel_, 0);
 }
 
-}  // namespace uullrich::playground
+}

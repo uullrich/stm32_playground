@@ -2,33 +2,38 @@
 
 #include <gtest/gtest.h>
 
-namespace {
+namespace
+{
 
 using uullrich::playground::CanMessage;
 
-TEST(CanMessageTest, MaxLenMatchesCanFdSize) {
+TEST(CanMessageTest, MaxLenMatchesCanFdSize)
+{
     EXPECT_EQ(CanMessage::kMaxLen, 8u);
 }
 
-TEST(CanMessageTest, DefaultConstructionZeroInitializesEverything) {
+TEST(CanMessageTest, DefaultConstructionZeroInitializesEverything)
+{
     CanMessage msg;
 
     EXPECT_EQ(msg.id, 0u);
     EXPECT_EQ(msg.length, 0);
     EXPECT_FALSE(msg.extended);
     EXPECT_FALSE(msg.remote);
-    for (auto byte : msg.data) {
+    for (auto byte : msg.data)
+    {
         EXPECT_EQ(byte, 0u);
     }
 }
 
-TEST(CanMessageTest, FieldsAreIndividuallyAssignable) {
+TEST(CanMessageTest, FieldsAreIndividuallyAssignable)
+{
     CanMessage msg;
-    msg.id       = 0x123;
-    msg.length   = 4;
+    msg.id = 0x123;
+    msg.length = 4;
     msg.extended = true;
-    msg.remote   = false;
-    msg.data     = {0xDE, 0xAD, 0xBE, 0xEF};
+    msg.remote = false;
+    msg.data = {0xDE, 0xAD, 0xBE, 0xEF};
 
     EXPECT_EQ(msg.id, 0x123u);
     EXPECT_EQ(msg.length, 4);
@@ -40,11 +45,12 @@ TEST(CanMessageTest, FieldsAreIndividuallyAssignable) {
     EXPECT_EQ(msg.data[3], 0xEF);
 }
 
-TEST(CanMessageTest, CopyDuplicatesAllFields) {
+TEST(CanMessageTest, CopyDuplicatesAllFields)
+{
     CanMessage src;
-    src.id     = 0x456;
+    src.id = 0x456;
     src.length = 2;
-    src.data   = {0x11, 0x22};
+    src.data = {0x11, 0x22};
     src.remote = true;
 
     CanMessage copy = src;
@@ -55,4 +61,4 @@ TEST(CanMessageTest, CopyDuplicatesAllFields) {
     EXPECT_EQ(copy.data, src.data);
 }
 
-}  // namespace
+}

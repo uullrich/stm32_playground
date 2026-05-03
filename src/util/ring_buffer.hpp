@@ -6,7 +6,8 @@
 #include <concepts>
 #include <cstdint>
 
-namespace uullrich::playground {
+namespace uullrich::playground
+{
 
 // Lock-free single-producer / single-consumer ring buffer.
 //
@@ -19,14 +20,16 @@ namespace uullrich::playground {
 //
 // Capacity must be a power of two so head_/tail_ wrap with a bitmask.
 template <typename T, std::size_t Capacity>
-    requires (Capacity > 0 && std::has_single_bit(Capacity))
-class RingBuffer {
-public:
+    requires(Capacity > 0 && std::has_single_bit(Capacity))
+class RingBuffer
+{
+  public:
     [[nodiscard]] bool push(const T& item) noexcept
     {
         const auto head = head_.load(std::memory_order_relaxed);
         const auto tail = tail_.load(std::memory_order_acquire);
-        if (head - tail >= Capacity) return false;
+        if (head - tail >= Capacity)
+            return false;
         buffer_[head & kMask] = item;
         head_.store(head + 1, std::memory_order_release);
         return true;
@@ -36,7 +39,8 @@ public:
     {
         const auto tail = tail_.load(std::memory_order_relaxed);
         const auto head = head_.load(std::memory_order_acquire);
-        if (head == tail) return false;
+        if (head == tail)
+            return false;
         out = buffer_[tail & kMask];
         tail_.store(tail + 1, std::memory_order_release);
         return true;
@@ -44,19 +48,17 @@ public:
 
     [[nodiscard]] bool is_empty() const noexcept
     {
-        return head_.load(std::memory_order_acquire) ==
-               tail_.load(std::memory_order_acquire);
+        return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire);
     }
 
     [[nodiscard]] std::size_t count() const noexcept
     {
-        return head_.load(std::memory_order_acquire) -
-               tail_.load(std::memory_order_acquire);
+        return head_.load(std::memory_order_acquire) - tail_.load(std::memory_order_acquire);
     }
 
     static constexpr std::size_t capacity() noexcept { return Capacity; }
 
-private:
+  private:
     static constexpr std::size_t kMask = Capacity - 1;
 
     std::array<T, Capacity> buffer_{};
@@ -64,4 +66,4 @@ private:
     std::atomic<std::uint32_t> tail_{0};
 };
 
-}  // namespace uullrich::playground
+}

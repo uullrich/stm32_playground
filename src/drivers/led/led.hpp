@@ -3,10 +3,12 @@
 #include "stm32f7xx_hal.h"
 #include <cstdint>
 
-namespace uullrich::playground {
+namespace uullrich::playground
+{
 
-class DigitalLed {
-public:
+class DigitalLed
+{
+  public:
     DigitalLed(GPIO_TypeDef* port, std::uint16_t pin) noexcept;
 
     DigitalLed(const DigitalLed&) = delete;
@@ -17,13 +19,14 @@ public:
     void toggle() noexcept;
     void set(bool on) noexcept;
 
-private:
+  private:
     GPIO_TypeDef* port_;
     std::uint16_t pin_;
 };
 
-class PwmLed {
-public:
+class PwmLed
+{
+  public:
     PwmLed(TIM_HandleTypeDef* timer, std::uint32_t channel, std::uint32_t period) noexcept;
 
     PwmLed(const PwmLed&) = delete;
@@ -35,10 +38,10 @@ public:
 
     [[nodiscard]] std::uint32_t period() const noexcept { return period_; }
 
-private:
+  private:
     TIM_HandleTypeDef* timer_;
     std::uint32_t channel_;
     std::uint32_t period_;
 };
 
-}  // namespace uullrich::playground
+}

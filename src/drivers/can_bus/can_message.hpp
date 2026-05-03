@@ -3,9 +3,11 @@
 #include <array>
 #include <cstdint>
 
-namespace uullrich::playground {
+namespace uullrich::playground
+{
 
-struct CanMessage {
+struct CanMessage
+{
     static constexpr std::size_t kMaxLen = 8;
 
     std::uint32_t id{0};
@@ -15,4 +17,4 @@ struct CanMessage {
     bool remote{false};
 };
 
-}  // namespace uullrich::playground
+}
