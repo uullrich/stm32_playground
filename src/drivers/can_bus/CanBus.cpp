@@ -52,11 +52,11 @@ CanBus::Status CanBus::init()
     registerBus(*this);
 
     CAN_FilterTypeDef filter{};
-    filter.FilterBank           = 0;
-    filter.FilterMode           = CAN_FILTERMODE_IDMASK;
-    filter.FilterScale          = CAN_FILTERSCALE_32BIT;
+    filter.FilterBank = 0;
+    filter.FilterMode = CAN_FILTERMODE_IDMASK;
+    filter.FilterScale = CAN_FILTERSCALE_32BIT;
     filter.FilterFIFOAssignment = CAN_RX_FIFO0;
-    filter.FilterActivation     = ENABLE;
+    filter.FilterActivation = ENABLE;
     if (HAL_CAN_ConfigFilter(&m_hcan, &filter) != HAL_OK)
         return FilterError;
 
@@ -119,10 +119,10 @@ void CanBus::onRx()
 
         CanMessage msg{};
         msg.extended = (header.IDE == CAN_ID_EXT);
-        msg.remote   = (header.RTR == CAN_RTR_REMOTE);
-        msg.id       = msg.extended ? header.ExtId : header.StdId;
-        msg.length   = static_cast<std::uint8_t>(header.DLC);
-        msg.data     = data;
+        msg.remote = (header.RTR == CAN_RTR_REMOTE);
+        msg.id = msg.extended ? header.ExtId : header.StdId;
+        msg.length = static_cast<std::uint8_t>(header.DLC);
+        msg.data = data;
 
         (void)m_rxQueue.push(msg);
     }
