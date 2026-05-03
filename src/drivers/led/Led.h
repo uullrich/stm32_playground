@@ -34,10 +34,10 @@ public:
     PwmLed& operator=(const PwmLed&) = delete;
 
     void start();
-    void set_brightness(std::uint32_t pulse);
+    void setBrightness(std::uint32_t pulse);
     void off();
 
-    [[nodiscard]] std::uint32_t period() const { return m_period; }
+    [[nodiscard]] std::uint32_t period() const;
 
 private:
     TIM_HandleTypeDef& m_timer;

@@ -7,7 +7,7 @@ namespace uullrich::playground
 
 class ILogger
 {
-public:
+  public:
     virtual ~ILogger() = default;
 
     virtual void write(std::string_view text) = 0;

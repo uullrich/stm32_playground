@@ -6,11 +6,13 @@ namespace uullrich::playground
 {
 
 Button::Button(std::uint16_t pin, std::uint32_t debounceMs, PressHandler onPress)
-    : m_pin{pin}, m_debounceMs{debounceMs}, m_onPress{std::move(onPress)}
+    : m_pin{pin},
+      m_debounceMs{debounceMs},
+      m_onPress{std::move(onPress)}
 {
 }
 
-void Button::handle_exti(std::uint16_t triggeredPin)
+void Button::handleExti(std::uint16_t triggeredPin)
 {
     if (triggeredPin != m_pin)
         return;

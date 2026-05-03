@@ -30,13 +30,13 @@ public:
     [[nodiscard]] Status send(const CanMessage& msg);
     [[nodiscard]] bool receive(CanMessage& out);
 
-    [[nodiscard]] CAN_HandleTypeDef* hal_handle() const { return &m_hcan; }
+    [[nodiscard]] CAN_HandleTypeDef* halHandle() const;
 
-    void on_rx();
-    void on_tx_complete();
+    void onRx();
+    void onTxComplete();
 
 private:
-    void drain_tx_queue();
+    void drainTxQueue();
 
     CAN_HandleTypeDef& m_hcan;
     RingBuffer<CanMessage, QUEUE_SIZE> m_rxQueue{};

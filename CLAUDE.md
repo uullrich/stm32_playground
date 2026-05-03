@@ -61,6 +61,8 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 - Do not shorten variable Names, except common technical names.
   ✗ `c1`, `motorPulseWideModulation`
   ✓ `counter1`, `motorPWM`
+- Method names must be camelCase
+- No implementations in the method definition in the header
 
 ## Test scope
 

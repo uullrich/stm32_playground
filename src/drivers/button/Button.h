@@ -18,7 +18,7 @@ public:
     Button(const Button&) = delete;
     Button& operator=(const Button&) = delete;
 
-    void handle_exti(std::uint16_t triggeredPin);
+    void handleExti(std::uint16_t triggeredPin);
 
 private:
     std::uint16_t m_pin;

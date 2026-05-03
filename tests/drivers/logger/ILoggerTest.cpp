@@ -18,7 +18,7 @@ class CapturingLogger final : public ILogger
     }
 
     [[nodiscard]] const std::string& captured() const { return m_captured; }
-    [[nodiscard]] int write_count() const { return m_writeCount; }
+    [[nodiscard]] int writeCount() const { return m_writeCount; }
 
   private:
     std::string m_captured;
@@ -35,14 +35,14 @@ TEST_F(ILoggerTest, WriteForwardsTextVerbatim)
 {
     m_logger.write("hello");
     EXPECT_EQ(m_logger.captured(), "hello");
-    EXPECT_EQ(m_logger.write_count(), 1);
+    EXPECT_EQ(m_logger.writeCount(), 1);
 }
 
 TEST_F(ILoggerTest, PrintfWithPlainStringEqualsWrite)
 {
     m_logger.printf("plain text");
     EXPECT_EQ(m_logger.captured(), "plain text");
-    EXPECT_EQ(m_logger.write_count(), 1);
+    EXPECT_EQ(m_logger.writeCount(), 1);
 }
 
 TEST_F(ILoggerTest, PrintfFormatsSignedDecimal)
@@ -73,7 +73,7 @@ TEST_F(ILoggerTest, PrintfWithEmptyFormatProducesNoSinkCall)
 {
     m_logger.printf("");
     EXPECT_EQ(m_logger.captured(), "");
-    EXPECT_EQ(m_logger.write_count(), 0);
+    EXPECT_EQ(m_logger.writeCount(), 0);
 }
 
 TEST_F(ILoggerTest, ConsecutivePrintfCallsAccumulateInOrder)
@@ -83,7 +83,7 @@ TEST_F(ILoggerTest, ConsecutivePrintfCallsAccumulateInOrder)
     m_logger.printf("%c", 'c');
 
     EXPECT_EQ(m_logger.captured(), "abc");
-    EXPECT_EQ(m_logger.write_count(), 3);
+    EXPECT_EQ(m_logger.writeCount(), 3);
 }
 
 TEST_F(ILoggerTest, PrintfTruncatesGracefullyWhenOutputExceedsBuffer)

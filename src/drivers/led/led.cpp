@@ -3,7 +3,9 @@
 namespace uullrich::playground
 {
 
-DigitalLed::DigitalLed(GPIO_TypeDef& port, std::uint16_t pin) : m_port{port}, m_pin{pin}
+DigitalLed::DigitalLed(GPIO_TypeDef& port, std::uint16_t pin)
+    : m_port{port},
+      m_pin{pin}
 {
     off();
 }
@@ -29,8 +31,15 @@ void DigitalLed::set(bool state)
 }
 
 PwmLed::PwmLed(TIM_HandleTypeDef& timer, std::uint32_t channel, std::uint32_t period)
-    : m_timer{timer}, m_channel{channel}, m_period{period}
+    : m_timer{timer},
+      m_channel{channel},
+      m_period{period}
 {
+}
+
+std::uint32_t PwmLed::period() const
+{
+    return m_period;
 }
 
 void PwmLed::start()
@@ -38,7 +47,7 @@ void PwmLed::start()
     HAL_TIM_PWM_Start(&m_timer, m_channel);
 }
 
-void PwmLed::set_brightness(std::uint32_t pulse)
+void PwmLed::setBrightness(std::uint32_t pulse)
 {
     if (pulse > m_period)
         pulse = m_period;

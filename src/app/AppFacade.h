@@ -1,0 +1,22 @@
+#ifndef APPFACADE_H
+#define APPFACADE_H
+
+#include "stm32f7xx_hal.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    void app_init(CAN_HandleTypeDef*  hcan,
+                  TIM_HandleTypeDef*  htimPwm,
+                  TIM_HandleTypeDef*  htimTick,
+                  UART_HandleTypeDef* huart);
+
+    void app_run(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -4,13 +4,13 @@
 #include <cstdarg>
 #include <cstdio>
 
-namespace uullrich::playground
-{
-
 namespace
 {
 constexpr std::size_t FORMAT_BUFFER_SIZE = 128;
 }
+
+namespace uullrich::playground
+{
 
 void ILogger::printf(const char* fmt, ...)
 {
@@ -18,13 +18,14 @@ void ILogger::printf(const char* fmt, ...)
 
     std::va_list args;
     va_start(args, fmt);
-    const int n = std::vsnprintf(buffer.data(), buffer.size(), fmt, args);
+    const int numCharsWritten = std::vsnprintf(buffer.data(), buffer.size(), fmt, args);
     va_end(args);
 
-    if (n <= 0)
+    if (numCharsWritten <= 0)
         return;
-    const auto length = static_cast<std::size_t>(n) >= buffer.size() ? buffer.size() - 1
-                                                                      : static_cast<std::size_t>(n);
+    const auto length = static_cast<std::size_t>(numCharsWritten) >= buffer.size()
+                            ? buffer.size() - 1
+                            : static_cast<std::size_t>(numCharsWritten);
     write({buffer.data(), length});
 }
 

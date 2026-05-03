@@ -3,7 +3,8 @@
 namespace uullrich::playground
 {
 
-UartLogger::UartLogger(UART_HandleTypeDef& uart) : m_uart{uart}
+UartLogger::UartLogger(UART_HandleTypeDef& uart)
+    : m_uart{uart}
 {
 }
 

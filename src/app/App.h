@@ -23,16 +23,16 @@ public:
     void init();
     void run();
 
-    void on_tick(TIM_HandleTypeDef* htim);
-    void on_exti(std::uint16_t pin);
+    void onTick(TIM_HandleTypeDef* htim);
+    void onExti(std::uint16_t pin);
 
 private:
-    void on_button_pressed();
-    void animate_leds();
-    void send_heartbeat();
-    void process_received_messages();
-    void log_received(const CanMessage& msg);
-    void log_boot_banner(CanBus::Status canStatus);
+    void onButtonPressed();
+    void animateLeds();
+    void sendHeartbeat();
+    void processReceivedMessages();
+    void logReceived(const CanMessage& msg);
+    void logBootBanner(CanBus::Status canStatus);
 
     static constexpr std::uint32_t PWM_PERIOD          = 999;
     static constexpr std::int32_t  FADE_STEP           = 10;

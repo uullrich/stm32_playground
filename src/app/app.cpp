@@ -14,7 +14,7 @@ App::App(CAN_HandleTypeDef& hcan,
     : m_ld2{*GPIOB, LD2_Pin},
       m_ld3{*GPIOB, LD3_Pin},
       m_ld1{htimPwm, TIM_CHANNEL_3, PWM_PERIOD},
-      m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { on_button_pressed(); }},
+      m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
       m_canBus{hcan},
       m_logger{logger},
       m_tickTimer{htimTick}
@@ -26,10 +26,10 @@ void App::init()
     m_ld1.start();
     const auto canStatus = m_canBus.init();
     HAL_TIM_Base_Start_IT(&m_tickTimer);
-    log_boot_banner(canStatus);
+    logBootBanner(canStatus);
 }
 
-void App::log_boot_banner(CanBus::Status canStatus)
+void App::logBootBanner(CanBus::Status canStatus)
 {
     using enum CanBus::Status;
     const char* canStr = "OK";
@@ -44,30 +44,30 @@ void App::log_boot_banner(CanBus::Status canStatus)
 
 void App::run()
 {
-    process_received_messages();
+    processReceivedMessages();
 
     const std::uint32_t now = HAL_GetTick();
     if ((now - m_lastHeartbeatTick) >= HEARTBEAT_PERIOD_MS)
     {
         m_lastHeartbeatTick = now;
-        send_heartbeat();
+        sendHeartbeat();
     }
 }
 
-void App::on_tick(TIM_HandleTypeDef* htim)
+void App::onTick(TIM_HandleTypeDef* htim)
 {
     if (htim == &m_tickTimer && m_ledsActive)
     {
-        animate_leds();
+        animateLeds();
     }
 }
 
-void App::on_exti(std::uint16_t pin)
+void App::onExti(std::uint16_t pin)
 {
-    m_button.handle_exti(pin);
+    m_button.handleExti(pin);
 }
 
-void App::on_button_pressed()
+void App::onButtonPressed()
 {
     m_ledsActive = !m_ledsActive;
     if (!m_ledsActive)
@@ -78,21 +78,21 @@ void App::on_button_pressed()
     }
 }
 
-void App::animate_leds()
+void App::animateLeds()
 {
-    static std::uint32_t c2 = 0;
-    static std::uint32_t c3 = 0;
+    static std::uint32_t ld2Counter = 0;
+    static std::uint32_t ld3Counter = 0;
     static std::int32_t brightness = 0;
     static std::int32_t step = FADE_STEP;
 
-    if (++c2 >= LD2_TICK_DIVIDER)
+    if (++ld2Counter >= LD2_TICK_DIVIDER)
     {
-        c2 = 0;
+        ld2Counter = 0;
         m_ld2.toggle();
     }
-    if (++c3 >= LD3_TICK_DIVIDER)
+    if (++ld3Counter >= LD3_TICK_DIVIDER)
     {
-        c3 = 0;
+        ld3Counter = 0;
         m_ld3.toggle();
     }
 
@@ -107,10 +107,10 @@ void App::animate_leds()
         brightness = 0;
         step = FADE_STEP;
     }
-    m_ld1.set_brightness(static_cast<std::uint32_t>(brightness));
+    m_ld1.setBrightness(static_cast<std::uint32_t>(brightness));
 }
 
-void App::send_heartbeat()
+void App::sendHeartbeat()
 {
     static std::uint8_t counter = 0;
 
@@ -122,16 +122,16 @@ void App::send_heartbeat()
     (void)m_canBus.send(msg);
 }
 
-void App::process_received_messages()
+void App::processReceivedMessages()
 {
     CanMessage msg;
     while (m_canBus.receive(msg))
     {
-        log_received(msg);
+        logReceived(msg);
     }
 }
 
-void App::log_received(const CanMessage& msg)
+void App::logReceived(const CanMessage& msg)
 {
     char payload[3 * CanMessage::MAX_LEN + 1] = {};
     std::size_t offset = 0;

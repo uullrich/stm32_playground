@@ -3,29 +3,27 @@
 #include <array>
 #include <cstring>
 
-namespace uullrich::playground
-{
-
 namespace
 {
 constexpr std::size_t MAX_REGISTERED_BUSES = 2;
 
-std::array<CanBus*, MAX_REGISTERED_BUSES> g_registry{};
+std::array<uullrich::playground::CanBus*, MAX_REGISTERED_BUSES> g_registry{};
 std::size_t g_registryCount = 0;
 
-void register_bus(CanBus& bus)
+void registerBus(uullrich::playground::CanBus& bus)
 {
     if (g_registryCount < g_registry.size())
     {
-        g_registry[g_registryCount++] = &bus;
+        g_registry[g_registryCount] = &bus;
+        ++g_registryCount;
     }
 }
 
-CanBus* find_bus(CAN_HandleTypeDef* hcan)
+uullrich::playground::CanBus* findBus(const CAN_HandleTypeDef* hcan)
 {
     for (std::size_t i = 0; i < g_registryCount; ++i)
     {
-        if (g_registry[i] && g_registry[i]->hal_handle() == hcan)
+        if (g_registry[i] && g_registry[i]->halHandle() == hcan)
         {
             return g_registry[i];
         }
@@ -34,13 +32,24 @@ CanBus* find_bus(CAN_HandleTypeDef* hcan)
 }
 }
 
-CanBus::CanBus(CAN_HandleTypeDef& hcan) : m_hcan{hcan}
+namespace uullrich::playground
 {
+
+CanBus::CanBus(CAN_HandleTypeDef& hcan)
+    : m_hcan{hcan}
+{
+}
+
+CAN_HandleTypeDef* CanBus::halHandle() const
+{
+    return &m_hcan;
 }
 
 CanBus::Status CanBus::init()
 {
-    register_bus(*this);
+    using enum Status;
+
+    registerBus(*this);
 
     CAN_FilterTypeDef filter{};
     filter.FilterBank           = 0;
@@ -49,25 +58,25 @@ CanBus::Status CanBus::init()
     filter.FilterFIFOAssignment = CAN_RX_FIFO0;
     filter.FilterActivation     = ENABLE;
     if (HAL_CAN_ConfigFilter(&m_hcan, &filter) != HAL_OK)
-        return Status::FilterError;
+        return FilterError;
 
     if (HAL_CAN_Start(&m_hcan) != HAL_OK)
-        return Status::StartError;
+        return StartError;
 
-    if (HAL_CAN_ActivateNotification(&m_hcan,
-                                     CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) !=
-        HAL_OK)
-        return Status::NotifyError;
+    if (HAL_CAN_ActivateNotification(&m_hcan, CAN_IT_RX_FIFO0_MSG_PENDING |
+                                                  CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK)
+        return NotifyError;
 
-    return Status::Ok;
+    return Ok;
 }
 
 CanBus::Status CanBus::send(const CanMessage& msg)
 {
+    using enum Status;
     if (!m_txQueue.push(msg))
-        return Status::TxQueueFull;
-    drain_tx_queue();
-    return Status::Ok;
+        return TxQueueFull;
+    drainTxQueue();
+    return Ok;
 }
 
 bool CanBus::receive(CanMessage& out)
@@ -75,9 +84,9 @@ bool CanBus::receive(CanMessage& out)
     return m_rxQueue.pop(out);
 }
 
-void CanBus::drain_tx_queue()
+void CanBus::drainTxQueue()
 {
-    while (!m_txQueue.is_empty() && HAL_CAN_GetTxMailboxesFreeLevel(&m_hcan) > 0)
+    while (!m_txQueue.isEmpty() && HAL_CAN_GetTxMailboxesFreeLevel(&m_hcan) > 0)
     {
         CanMessage msg;
         if (!m_txQueue.pop(msg))
@@ -98,7 +107,7 @@ void CanBus::drain_tx_queue()
     }
 }
 
-void CanBus::on_rx()
+void CanBus::onRx()
 {
     while (HAL_CAN_GetRxFifoFillLevel(&m_hcan, CAN_RX_FIFO0) > 0)
     {
@@ -119,37 +128,37 @@ void CanBus::on_rx()
     }
 }
 
-void CanBus::on_tx_complete()
+void CanBus::onTxComplete()
 {
-    drain_tx_queue();
+    drainTxQueue();
 }
 
 }
 
-extern "C" {
-
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan)
+extern "C"
 {
-    if (auto* bus = uullrich::playground::find_bus(hcan))
-        bus->on_rx();
-}
 
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan)
-{
-    if (auto* bus = uullrich::playground::find_bus(hcan))
-        bus->on_tx_complete();
-}
+    void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan)
+    {
+        if (auto* bus = findBus(hcan))
+            bus->onRx();
+    }
 
-void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef* hcan)
-{
-    if (auto* bus = uullrich::playground::find_bus(hcan))
-        bus->on_tx_complete();
-}
+    void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* hcan)
+    {
+        if (auto* bus = findBus(hcan))
+            bus->onTxComplete();
+    }
 
-void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef* hcan)
-{
-    if (auto* bus = uullrich::playground::find_bus(hcan))
-        bus->on_tx_complete();
-}
+    void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef* hcan)
+    {
+        if (auto* bus = findBus(hcan))
+            bus->onTxComplete();
+    }
 
+    void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef* hcan)
+    {
+        if (auto* bus = findBus(hcan))
+            bus->onTxComplete();
+    }
 }

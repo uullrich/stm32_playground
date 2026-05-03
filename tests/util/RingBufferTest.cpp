@@ -16,7 +16,7 @@ class RingBufferTest : public ::testing::Test
 
 TEST_F(RingBufferTest, IsEmptyAfterDefaultConstruction)
 {
-    EXPECT_TRUE(m_buffer.is_empty());
+    EXPECT_TRUE(m_buffer.isEmpty());
     EXPECT_EQ(m_buffer.count(), 0u);
 }
 
@@ -28,7 +28,7 @@ TEST_F(RingBufferTest, ReportsCompileTimeCapacity)
 TEST_F(RingBufferTest, PushReturnsTrueWhenSpaceAvailable)
 {
     EXPECT_TRUE(m_buffer.push(42));
-    EXPECT_FALSE(m_buffer.is_empty());
+    EXPECT_FALSE(m_buffer.isEmpty());
     EXPECT_EQ(m_buffer.count(), 1u);
 }
 
@@ -47,7 +47,7 @@ TEST_F(RingBufferTest, BecomesEmptyAfterPoppingOnlyItem)
     int out = 0;
     ASSERT_TRUE(m_buffer.pop(out));
 
-    EXPECT_TRUE(m_buffer.is_empty());
+    EXPECT_TRUE(m_buffer.isEmpty());
     EXPECT_EQ(m_buffer.count(), 0u);
 }
 
@@ -95,7 +95,7 @@ TEST_F(RingBufferTest, SurvivesManyPushPopCyclesWrappingTheIndex)
         ASSERT_TRUE(m_buffer.pop(out));
         EXPECT_EQ(out, i);
     }
-    EXPECT_TRUE(m_buffer.is_empty());
+    EXPECT_TRUE(m_buffer.isEmpty());
 }
 
 TEST_F(RingBufferTest, FillsAndDrainsRepeatedlyPreservingFifoEachRound)

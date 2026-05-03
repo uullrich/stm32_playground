@@ -9,40 +9,40 @@ std::optional<uullrich::playground::UartLogger> g_logger;
 std::optional<uullrich::playground::App>        g_app;
 }
 
-extern "C" {
-
-void app_init(CAN_HandleTypeDef*  hcan,
-              TIM_HandleTypeDef*  htimPwm,
-              TIM_HandleTypeDef*  htimTick,
-              UART_HandleTypeDef* huart)
+extern "C"
 {
-    g_logger.emplace(*huart);
-    g_app.emplace(*hcan, *htimPwm, *htimTick, *g_logger);
-    g_app->init();
-}
 
-void app_run(void)
-{
-    if (g_app.has_value())
+    void app_init(CAN_HandleTypeDef*  hcan,
+                  TIM_HandleTypeDef*  htimPwm,
+                  TIM_HandleTypeDef*  htimTick,
+                  UART_HandleTypeDef* huart)
     {
-        g_app->run();
+        g_logger.emplace(*huart);
+        g_app.emplace(*hcan, *htimPwm, *htimTick, *g_logger);
+        g_app->init();
     }
-}
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if (g_app.has_value())
+    void app_run(void)
     {
-        g_app->on_exti(GPIO_Pin);
+        if (g_app.has_value())
+        {
+            g_app->run();
+        }
     }
-}
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
-{
-    if (g_app.has_value())
+    void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
-        g_app->on_tick(htim);
+        if (g_app.has_value())
+        {
+            g_app->onExti(GPIO_Pin);
+        }
     }
-}
 
+    void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+    {
+        if (g_app.has_value())
+        {
+            g_app->onTick(htim);
+        }
+    }
 }

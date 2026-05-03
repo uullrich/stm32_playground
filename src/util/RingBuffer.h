@@ -36,7 +36,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool is_empty() const
+    [[nodiscard]] bool isEmpty() const
     {
         return m_head.load(std::memory_order_acquire) == m_tail.load(std::memory_order_acquire);
     }
