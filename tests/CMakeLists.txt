@@ -29,15 +29,15 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 add_executable(unit_tests
     # --- test sources (mirror ../src/ tree) ---
-    util/ring_buffer_test.cpp
-    drivers/can_bus/can_message_test.cpp
-    drivers/logger/ilogger_test.cpp
+    util/RingBufferTest.cpp
+    drivers/can_bus/CanMessageTest.cpp
+    drivers/logger/ILoggerTest.cpp
 
     # --- production sources under test ---
-    ${SRC_DIR}/drivers/logger/logger.cpp
+    ${SRC_DIR}/drivers/logger/ILogger.cpp
 
     # --- host stubs ---
-    support/hal_stub.cpp
+    support/HalStub.cpp
 )
 
 target_include_directories(unit_tests PRIVATE

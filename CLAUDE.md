@@ -44,6 +44,23 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 - No comments unless the WHY is non-obvious (hidden constraint, workaround, subtle invariant).
 - No docstrings or multi-line comment blocks.
 - Prefer `[[nodiscard]]` on functions whose return value signals errors.
+- File names for C, C++ are PascalCase
+- Global variables have g\_ prefix and are camelCase
+- `constexpr` and `const` values: `UPPER_SNAKE_CASE`, no `k` prefix.  
+  ✗ `kMaxLen`, `kPwmPeriod`  
+  ✓ `MAX_LEN`, `PWM_PERIOD`
+- Member variables have m\_ prefix and are camelCase
+- Use const where it make sense
+- Prefer references over pointers
+- Interfaces needs to be in a own file with the prefix I
+- C++ header and Implementation needs to be seperated in seperate files
+- C++ or C header uses the ending .h
+- C++ implementation uses ending .cpp
+- C implememtation uses ending .c
+- Namespaces which are anonymous should be at the beginning of the file
+- Do not shorten variable Names, except common technical names.
+  ✗ `c1`, `motorPulseWideModulation`
+  ✓ `counter1`, `motorPWM`
 
 ## Test scope
 

@@ -1,27 +1,27 @@
-#include "button.hpp"
+#include "Button.h"
 
 #include <utility>
 
 namespace uullrich::playground
 {
 
-Button::Button(std::uint16_t pin, std::uint32_t debounce_ms, PressHandler on_press) noexcept
-    : pin_{pin}, debounce_ms_{debounce_ms}, on_press_{std::move(on_press)}
+Button::Button(std::uint16_t pin, std::uint32_t debounceMs, PressHandler onPress)
+    : m_pin{pin}, m_debounceMs{debounceMs}, m_onPress{std::move(onPress)}
 {
 }
 
-void Button::handle_exti(std::uint16_t triggered_pin) noexcept
+void Button::handle_exti(std::uint16_t triggeredPin)
 {
-    if (triggered_pin != pin_)
+    if (triggeredPin != m_pin)
         return;
 
     const std::uint32_t now = HAL_GetTick();
-    if ((now - last_press_tick_) < debounce_ms_)
+    if ((now - m_lastPressTick) < m_debounceMs)
         return;
-    last_press_tick_ = now;
+    m_lastPressTick = now;
 
-    if (on_press_)
-        on_press_();
+    if (m_onPress)
+        m_onPress();
 }
 
 }

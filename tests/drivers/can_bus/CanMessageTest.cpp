@@ -1,15 +1,13 @@
-#include "can_message.hpp"
+#include "CanMessage.h"
 
 #include <gtest/gtest.h>
 
-namespace
+namespace uullrich::playground::test
 {
 
-using uullrich::playground::CanMessage;
-
-TEST(CanMessageTest, MaxLenMatchesCanFdSize)
+TEST(CanMessageTest, MaxLenMatchesCanFrameSize)
 {
-    EXPECT_EQ(CanMessage::kMaxLen, 8u);
+    EXPECT_EQ(CanMessage::MAX_LEN, 8u);
 }
 
 TEST(CanMessageTest, DefaultConstructionZeroInitializesEverything)
@@ -53,7 +51,7 @@ TEST(CanMessageTest, CopyDuplicatesAllFields)
     src.data = {0x11, 0x22};
     src.remote = true;
 
-    CanMessage copy = src;
+    const CanMessage copy = src;
 
     EXPECT_EQ(copy.id, src.id);
     EXPECT_EQ(copy.length, src.length);
@@ -61,4 +59,4 @@ TEST(CanMessageTest, CopyDuplicatesAllFields)
     EXPECT_EQ(copy.data, src.data);
 }
 
-}
+} // namespace uullrich::playground::test

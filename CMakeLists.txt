@@ -48,12 +48,13 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    src/app/app.cpp
-    src/app/app_facade.cpp
-    src/drivers/button/button.cpp
-    src/drivers/can_bus/can_bus.cpp
-    src/drivers/led/led.cpp
-    src/drivers/logger/logger.cpp
+    src/app/App.cpp
+    src/app/AppFacade.cpp
+    src/drivers/button/Button.cpp
+    src/drivers/can_bus/CanBus.cpp
+    src/drivers/led/Led.cpp
+    src/drivers/logger/ILogger.cpp
+    src/drivers/logger/UartLogger.cpp
 )
 
 # Add include paths
