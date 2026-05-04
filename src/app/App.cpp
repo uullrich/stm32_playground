@@ -11,9 +11,12 @@ App::App(CAN_HandleTypeDef& hcan,
          TIM_HandleTypeDef& htimPwm,
          TIM_HandleTypeDef& htimTick,
          ILogger&           logger)
-    : m_ld2{*GPIOB, LD2_Pin},
-      m_ld3{*GPIOB, LD3_Pin},
-      m_ld1{htimPwm, TIM_CHANNEL_3, PWM_PERIOD},
+    : m_ld2Output{*GPIOB, LD2_Pin},
+      m_ld3Output{*GPIOB, LD3_Pin},
+      m_ld1Output{htimPwm, TIM_CHANNEL_3, PWM_PERIOD},
+      m_ld2{m_ld2Output},
+      m_ld3{m_ld3Output},
+      m_ld1{m_ld1Output},
       m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
       m_canBus{hcan},
       m_logger{logger},
@@ -23,7 +26,6 @@ App::App(CAN_HandleTypeDef& hcan,
 
 void App::init()
 {
-    m_ld1.start();
     const auto canStatus = m_canBus.init();
     HAL_TIM_Base_Start_IT(&m_tickTimer);
     logBootBanner(canStatus);

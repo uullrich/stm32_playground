@@ -1,10 +1,12 @@
 #pragma once
 
-#include "Button.h"
 #include "CanBus.h"
 #include "ILogger.h"
+#include "DigitalOutput.h"
+#include "PwmOutput.h"
 #include "DigitalLed.h"
 #include "PwmLed.h"
+#include "Button.h"
 #include "stm32f7xx_hal.h"
 
 namespace uullrich::playground
@@ -42,10 +44,13 @@ private:
     static constexpr std::uint32_t BUTTON_DEBOUNCE_MS  = 50;
     static constexpr std::uint32_t HEARTBEAT_PERIOD_MS = 500;
 
-    DigitalLed m_ld2;
-    DigitalLed m_ld3;
-    PwmLed     m_ld1;
-    Button     m_button;
+    DigitalOutput m_ld2Output;
+    DigitalOutput m_ld3Output;
+    PwmOutput     m_ld1Output;
+    DigitalLed    m_ld2;
+    DigitalLed    m_ld3;
+    PwmLed        m_ld1;
+    Button        m_button;
     CanBus     m_canBus;
     ILogger&   m_logger;
 

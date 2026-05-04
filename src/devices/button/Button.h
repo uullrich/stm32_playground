@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IButton.h"
 #include "stm32f7xx_hal.h"
 
 #include <cstdint>
@@ -8,7 +9,7 @@
 namespace uullrich::playground
 {
 
-class Button
+class Button : public IButton
 {
 public:
     using PressHandler = std::function<void()>;
@@ -18,7 +19,7 @@ public:
     Button(const Button&) = delete;
     Button& operator=(const Button&) = delete;
 
-    void handleExti(std::uint16_t triggeredPin);
+    void handleExti(std::uint16_t triggeredPin) override;
 
 private:
     std::uint16_t m_pin;
