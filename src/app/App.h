@@ -3,7 +3,8 @@
 #include "Button.h"
 #include "CanBus.h"
 #include "ILogger.h"
-#include "Led.h"
+#include "DigitalLed.h"
+#include "PwmLed.h"
 #include "stm32f7xx_hal.h"
 
 namespace uullrich::playground

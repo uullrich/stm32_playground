@@ -63,6 +63,7 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
   ✓ `counter1`, `motorPWM`
 - Method names must be camelCase
 - No implementations in the method definition in the header
+- A file may contain only one class, no more
 
 ## Test scope
 

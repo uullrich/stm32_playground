@@ -52,7 +52,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/app/AppFacade.cpp
     src/drivers/button/Button.cpp
     src/drivers/can_bus/CanBus.cpp
-    src/drivers/led/Led.cpp
+    src/drivers/led/DigitalLed.cpp
+    src/drivers/led/PwmLed.cpp
     src/drivers/logger/ILogger.cpp
     src/drivers/logger/UartLogger.cpp
 )

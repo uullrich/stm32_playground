@@ -1,29 +1,10 @@
+#include "CapturingLogger.h"
 #include "ILogger.h"
 
 #include <gtest/gtest.h>
 
-#include <string>
-#include <string_view>
-
 namespace uullrich::playground::test
 {
-
-class CapturingLogger final : public ILogger
-{
-  public:
-    void write(std::string_view text) override
-    {
-        m_captured.append(text);
-        ++m_writeCount;
-    }
-
-    [[nodiscard]] const std::string& captured() const { return m_captured; }
-    [[nodiscard]] int writeCount() const { return m_writeCount; }
-
-  private:
-    std::string m_captured;
-    int m_writeCount{0};
-};
 
 class ILoggerTest : public ::testing::Test
 {
@@ -93,8 +74,8 @@ TEST_F(ILoggerTest, PrintfTruncatesGracefullyWhenOutputExceedsBuffer)
 
     EXPECT_FALSE(m_logger.captured().empty());
     EXPECT_LE(m_logger.captured().size(), 128u);
-    for (char c : m_logger.captured())
-        EXPECT_EQ(c, 'A');
+    for (char character : m_logger.captured())
+        EXPECT_EQ(character, 'A');
 }
 
 } // namespace uullrich::playground::test
