@@ -34,4 +34,11 @@ void PwmLed::setBrightness(std::uint32_t pulse)
     m_output.setPulse(pulse);
 }
 
+void PwmLed::setBrightnessPercent(std::uint8_t percent)
+{
+    if (percent > 100)
+        percent = 100;
+    m_output.setPulse(m_output.period() * percent / 100);
+}
+
 }

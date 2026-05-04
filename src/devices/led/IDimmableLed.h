@@ -11,6 +11,7 @@ class IDimmableLed : public ILed
 {
 public:
     virtual void setBrightness(std::uint32_t pulse) = 0;
+    virtual void setBrightnessPercent(std::uint8_t percent) = 0;
 };
 
 }
