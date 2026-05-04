@@ -99,9 +99,9 @@ void App::animateLeds()
     }
 
     brightness += step;
-    if (brightness >= static_cast<std::int32_t>(PWM_PERIOD))
+    if (brightness >= 100)
     {
-        brightness = static_cast<std::int32_t>(PWM_PERIOD);
+        brightness = 100;
         step = -FADE_STEP;
     }
     else if (brightness <= 0)
@@ -109,7 +109,7 @@ void App::animateLeds()
         brightness = 0;
         step = FADE_STEP;
     }
-    m_ld1.setBrightness(static_cast<std::uint32_t>(brightness));
+    m_ld1.setBrightnessPercent(static_cast<std::uint8_t>(brightness));
 }
 
 void App::sendHeartbeat()

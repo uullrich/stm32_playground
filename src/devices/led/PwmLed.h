@@ -19,7 +19,6 @@ public:
     void on() override;
     void off() override;
     void toggle() override;
-    void setBrightness(std::uint32_t pulse) override;
     void setBrightnessPercent(std::uint8_t percent) override;
 
 private:

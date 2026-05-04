@@ -37,8 +37,7 @@ private:
     void logReceived(const CanMessage& msg);
     void logBootBanner(CanBus::Status canStatus);
 
-    static constexpr std::uint32_t PWM_PERIOD          = 999;
-    static constexpr std::int32_t  FADE_STEP           = 10;
+    static constexpr std::int32_t  FADE_STEP           = 1;
     static constexpr std::uint32_t LD2_TICK_DIVIDER    = 3;
     static constexpr std::uint32_t LD3_TICK_DIVIDER    = 7;
     static constexpr std::uint32_t BUTTON_DEBOUNCE_MS  = 50;
