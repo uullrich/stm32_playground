@@ -5,7 +5,7 @@ namespace uullrich::playground
 
 class ILed
 {
-public:
+  public:
     virtual ~ILed() = default;
     virtual void on() = 0;
     virtual void off() = 0;

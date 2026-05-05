@@ -10,7 +10,7 @@ namespace uullrich::playground
 
 class PwmOutput : public IPwmOutput
 {
-public:
+  public:
     PwmOutput(TIM_HandleTypeDef& timer, std::uint32_t channel, std::uint32_t period);
 
     PwmOutput(const PwmOutput&) = delete;
@@ -20,10 +20,10 @@ public:
     void setPulse(std::uint32_t pulse) override;
     [[nodiscard]] std::uint32_t period() const override;
 
-private:
+  private:
     TIM_HandleTypeDef& m_timer;
-    std::uint32_t      m_channel;
-    std::uint32_t      m_period;
+    std::uint32_t m_channel;
+    std::uint32_t m_period;
 };
 
 }

@@ -9,7 +9,7 @@ namespace uullrich::playground
 
 class IDimmableLed : public ILed
 {
-public:
+  public:
     virtual void setBrightnessPercent(std::uint8_t percent) = 0;
 };
 

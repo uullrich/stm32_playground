@@ -8,7 +8,7 @@ namespace uullrich::playground
 
 class DigitalLed : public ILed
 {
-public:
+  public:
     explicit DigitalLed(IDigitalOutput& output);
 
     DigitalLed(const DigitalLed&) = delete;
@@ -18,7 +18,7 @@ public:
     void off() override;
     void toggle() override;
 
-private:
+  private:
     IDigitalOutput& m_output;
 };
 

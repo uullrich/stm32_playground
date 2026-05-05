@@ -7,7 +7,7 @@ namespace uullrich::playground
 
 class IPwmOutput
 {
-public:
+  public:
     virtual ~IPwmOutput() = default;
     virtual void start() = 0;
     virtual void setPulse(std::uint32_t pulse) = 0;

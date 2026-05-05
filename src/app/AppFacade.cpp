@@ -6,15 +6,13 @@
 namespace
 {
 std::optional<uullrich::playground::UartLogger> g_logger;
-std::optional<uullrich::playground::App>        g_app;
+std::optional<uullrich::playground::App> g_app;
 }
 
 extern "C"
 {
 
-    void app_init(CAN_HandleTypeDef*  hcan,
-                  TIM_HandleTypeDef*  htimPwm,
-                  TIM_HandleTypeDef*  htimTick,
+    void app_init(CAN_HandleTypeDef* hcan, TIM_HandleTypeDef* htimPwm, TIM_HandleTypeDef* htimTick,
                   UART_HandleTypeDef* huart)
     {
         g_logger.emplace(*huart);

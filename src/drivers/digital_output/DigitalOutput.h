@@ -10,7 +10,7 @@ namespace uullrich::playground
 
 class DigitalOutput : public IDigitalOutput
 {
-public:
+  public:
     DigitalOutput(GPIO_TypeDef& port, std::uint16_t pin);
 
     DigitalOutput(const DigitalOutput&) = delete;
@@ -19,7 +19,7 @@ public:
     void set(bool state) override;
     void toggle() override;
 
-private:
+  private:
     GPIO_TypeDef& m_port;
     std::uint16_t m_pin;
 };

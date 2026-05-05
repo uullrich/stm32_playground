@@ -10,7 +10,7 @@ namespace uullrich::playground
 
 class PwmLed : public IDimmableLed
 {
-public:
+  public:
     explicit PwmLed(IPwmOutput& output);
 
     PwmLed(const PwmLed&) = delete;
@@ -21,9 +21,9 @@ public:
     void toggle() override;
     void setBrightnessPercent(std::uint8_t percent) override;
 
-private:
+  private:
     IPwmOutput& m_output;
-    bool        m_isOn{false};
+    bool m_isOn{false};
 };
 
 }

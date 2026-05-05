@@ -13,7 +13,7 @@ template <typename T, std::size_t Capacity>
     requires(Capacity > 0 && std::has_single_bit(Capacity))
 class RingBuffer
 {
-public:
+  public:
     [[nodiscard]] bool push(const T& item)
     {
         const auto head = m_head.load(std::memory_order_relaxed);
@@ -48,7 +48,7 @@ public:
 
     static constexpr std::size_t capacity() { return Capacity; }
 
-private:
+  private:
     static constexpr std::size_t MASK = Capacity - 1;
 
     std::array<T, Capacity> m_buffer{};

@@ -8,9 +8,7 @@ extern "C"
 {
 #endif
 
-    void app_init(CAN_HandleTypeDef*  hcan,
-                  TIM_HandleTypeDef*  htimPwm,
-                  TIM_HandleTypeDef*  htimTick,
+    void app_init(CAN_HandleTypeDef* hcan, TIM_HandleTypeDef* htimPwm, TIM_HandleTypeDef* htimTick,
                   UART_HandleTypeDef* huart);
 
     void app_run(void);

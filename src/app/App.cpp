@@ -7,16 +7,14 @@
 namespace uullrich::playground
 {
 
-App::App(CAN_HandleTypeDef& hcan,
-         TIM_HandleTypeDef& htimPwm,
-         TIM_HandleTypeDef& htimTick,
-         ILogger&           logger)
+App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
+         ILogger& logger)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
       m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
-      m_ld2{m_ld2Output},
-      m_ld3{m_ld3Output},
-      m_ld1{m_ld1Output},
+      m_led2{m_ld2Output},
+      m_led3{m_ld3Output},
+      m_led1{m_ld1Output},
       m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
       m_canBus{hcan},
       m_logger{logger},
@@ -74,28 +72,28 @@ void App::onButtonPressed()
     m_ledsActive = !m_ledsActive;
     if (!m_ledsActive)
     {
-        m_ld2.off();
-        m_ld3.off();
-        m_ld1.off();
+        m_led2.off();
+        m_led3.off();
+        m_led1.off();
     }
 }
 
 void App::animateLeds()
 {
-    static std::uint32_t ld2Counter = 0;
-    static std::uint32_t ld3Counter = 0;
-    static std::int32_t brightness = 0;
-    static std::int32_t step = FADE_STEP;
+    static std::uint32_t led2Counter = 0;
+    static std::uint32_t led3Counter = 0;
+    static std::uint8_t brightness = 0;
+    static std::uint8_t step = FADE_STEP;
 
-    if (++ld2Counter >= LD2_TICK_DIVIDER)
+    if (++led2Counter >= LD2_TICK_DIVIDER)
     {
-        ld2Counter = 0;
-        m_ld2.toggle();
+        led2Counter = 0;
+        m_led2.toggle();
     }
-    if (++ld3Counter >= LD3_TICK_DIVIDER)
+    if (++led3Counter >= LD3_TICK_DIVIDER)
     {
-        ld3Counter = 0;
-        m_ld3.toggle();
+        led3Counter = 0;
+        m_led3.toggle();
     }
 
     brightness += step;
@@ -109,7 +107,7 @@ void App::animateLeds()
         brightness = 0;
         step = FADE_STEP;
     }
-    m_ld1.setBrightnessPercent(static_cast<std::uint8_t>(brightness));
+    m_led1.setBrightnessPercent(brightness);
 }
 
 void App::sendHeartbeat()
@@ -117,9 +115,9 @@ void App::sendHeartbeat()
     static std::uint8_t counter = 0;
 
     CanMessage msg{};
-    msg.id     = 0x123;
+    msg.id = 0x123;
     msg.length = 4;
-    msg.data   = {0xDE, 0xAD, 0xBE, counter++};
+    msg.data = {0xDE, 0xAD, 0xBE, counter++};
 
     (void)m_canBus.send(msg);
 }
@@ -145,8 +143,8 @@ void App::logReceived(const CanMessage& msg)
             break;
         offset += static_cast<std::size_t>(written);
     }
-    m_logger.printf("RX  id=0x%03lX  dlc=%u  data=[%s]\r\n",
-                    static_cast<unsigned long>(msg.id), msg.length, payload);
+    m_logger.printf("RX  id=0x%03lX  dlc=%u  data=[%s]\r\n", static_cast<unsigned long>(msg.id),
+                    msg.length, payload);
 }
 
 }

@@ -9,7 +9,7 @@ namespace uullrich::playground
 
 class CanBus
 {
-public:
+  public:
     static constexpr std::size_t QUEUE_SIZE = 16;
 
     enum class Status
@@ -35,7 +35,7 @@ public:
     void onRx();
     void onTxComplete();
 
-private:
+  private:
     void drainTxQueue();
 
     CAN_HandleTypeDef& m_hcan;
