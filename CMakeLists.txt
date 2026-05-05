@@ -54,7 +54,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/drivers/digital_output/DigitalOutput.cpp
     src/drivers/pwm_output/PwmOutput.cpp
     src/devices/led/DigitalLed.cpp
-    src/devices/led/PwmLed.cpp
+    src/devices/led/DimmableLed.cpp
     src/devices/button/Button.cpp
     src/drivers/logger/ILogger.cpp
     src/drivers/logger/UartLogger.cpp

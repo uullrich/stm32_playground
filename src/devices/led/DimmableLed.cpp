@@ -1,27 +1,27 @@
-#include "PwmLed.h"
+#include "DimmableLed.h"
 
 namespace uullrich::playground
 {
 
-PwmLed::PwmLed(IPwmOutput& output)
+DimmableLed::DimmableLed(IPwmOutput& output)
     : m_output{output}
 {
     m_output.start();
 }
 
-void PwmLed::on()
+void DimmableLed::on()
 {
     m_isOn = true;
     m_output.setPulse(m_output.period());
 }
 
-void PwmLed::off()
+void DimmableLed::off()
 {
     m_isOn = false;
     m_output.setPulse(0);
 }
 
-void PwmLed::toggle()
+void DimmableLed::toggle()
 {
     if (m_isOn)
         off();
@@ -29,7 +29,7 @@ void PwmLed::toggle()
         on();
 }
 
-void PwmLed::setBrightnessPercent(std::uint8_t percent)
+void DimmableLed::setBrightnessPercent(std::uint8_t percent)
 {
     if (percent > 100)
         percent = 100;

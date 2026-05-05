@@ -8,7 +8,7 @@ UartLogger::UartLogger(UART_HandleTypeDef& uart)
 {
 }
 
-void UartLogger::write(std::string_view text)
+void UartLogger::write(std::string_view text) const
 {
     if (text.empty())
         return;

@@ -22,25 +22,22 @@ extern "C"
 
     void app_run(void)
     {
-        if (g_app.has_value())
-        {
-            g_app->run();
-        }
+        if (!g_app.has_value())
+            return;
+        g_app->run();
     }
+}
 
-    void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-    {
-        if (g_app.has_value())
-        {
-            g_app->onExti(GPIO_Pin);
-        }
-    }
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (!g_app.has_value())
+        return;
+    g_app->onExti(GPIO_Pin);
+}
 
-    void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
-    {
-        if (g_app.has_value())
-        {
-            g_app->onTick(htim);
-        }
-    }
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+    if (!g_app.has_value())
+        return;
+    g_app->onTick(htim);
 }

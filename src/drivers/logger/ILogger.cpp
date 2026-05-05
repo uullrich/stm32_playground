@@ -12,7 +12,7 @@ constexpr std::size_t FORMAT_BUFFER_SIZE = 128;
 namespace uullrich::playground
 {
 
-void ILogger::printf(const char* fmt, ...)
+void ILogger::printf(const char* fmt, ...) const
 {
     std::array<char, FORMAT_BUFFER_SIZE> buffer{};
 

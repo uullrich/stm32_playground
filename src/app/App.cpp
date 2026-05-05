@@ -8,7 +8,7 @@ namespace uullrich::playground
 {
 
 App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
-         ILogger& logger)
+         const ILogger& logger)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
       m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
@@ -32,13 +32,25 @@ void App::init()
 void App::logBootBanner(CanBus::Status canStatus)
 {
     using enum CanBus::Status;
-    const char* canStr = "OK";
-    if (canStatus == FilterError)
+    const char* canStr = nullptr;
+    switch (canStatus)
+    {
+    case Ok:
+        canStr = "OK";
+        break;
+    case FilterError:
         canStr = "ERR:filter";
-    else if (canStatus == StartError)
+        break;
+    case StartError:
         canStr = "ERR:start";
-    else if (canStatus == NotifyError)
+        break;
+    case NotifyError:
         canStr = "ERR:notify";
+        break;
+    case TxQueueFull:
+        canStr = "ERR:txfull";
+        break;
+    }
     m_logger.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", canStr);
 }
 

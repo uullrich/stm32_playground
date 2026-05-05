@@ -5,7 +5,7 @@
 #include "DigitalOutput.h"
 #include "PwmOutput.h"
 #include "DigitalLed.h"
-#include "PwmLed.h"
+#include "DimmableLed.h"
 #include "Button.h"
 #include "stm32f7xx_hal.h"
 
@@ -16,7 +16,7 @@ class App final
 {
   public:
     App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
-        ILogger& logger);
+        const ILogger& logger);
 
     App(const App&) = delete;
     App& operator=(const App&) = delete;
@@ -46,10 +46,10 @@ class App final
     PwmOutput m_ld1Output;
     DigitalLed m_led2;
     DigitalLed m_led3;
-    PwmLed m_led1;
+    DimmableLed m_led1;
     Button m_button;
     CanBus m_canBus;
-    ILogger& m_logger;
+    const ILogger& m_logger;
 
     TIM_HandleTypeDef& m_tickTimer;
     bool m_ledsActive{true};

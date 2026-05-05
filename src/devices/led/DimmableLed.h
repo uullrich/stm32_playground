@@ -8,13 +8,13 @@
 namespace uullrich::playground
 {
 
-class PwmLed : public IDimmableLed
+class DimmableLed : public IDimmableLed
 {
   public:
-    explicit PwmLed(IPwmOutput& output);
+    explicit DimmableLed(IPwmOutput& output);
 
-    PwmLed(const PwmLed&) = delete;
-    PwmLed& operator=(const PwmLed&) = delete;
+    DimmableLed(const DimmableLed&) = delete;
+    DimmableLed& operator=(const DimmableLed&) = delete;
 
     void on() override;
     void off() override;
