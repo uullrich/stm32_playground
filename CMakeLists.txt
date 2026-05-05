@@ -50,10 +50,12 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/app/App.cpp
     src/app/AppFacade.cpp
-    src/drivers/button/Button.cpp
     src/drivers/can_bus/CanBus.cpp
-    src/drivers/led/DigitalLed.cpp
-    src/drivers/led/PwmLed.cpp
+    src/drivers/digital_output/DigitalOutput.cpp
+    src/drivers/pwm_output/PwmOutput.cpp
+    src/devices/led/DigitalLed.cpp
+    src/devices/led/PwmLed.cpp
+    src/devices/button/Button.cpp
     src/drivers/logger/ILogger.cpp
     src/drivers/logger/UartLogger.cpp
 )
@@ -61,10 +63,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/app
-    src/drivers/button
     src/drivers/can_bus
-    src/drivers/led
+    src/drivers/digital_output
+    src/drivers/pwm_output
     src/drivers/logger
+    src/devices/led
+    src/devices/button
     src/util
 )
 

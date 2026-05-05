@@ -11,9 +11,12 @@ App::App(CAN_HandleTypeDef& hcan,
          TIM_HandleTypeDef& htimPwm,
          TIM_HandleTypeDef& htimTick,
          ILogger&           logger)
-    : m_ld2{*GPIOB, LD2_Pin},
-      m_ld3{*GPIOB, LD3_Pin},
-      m_ld1{htimPwm, TIM_CHANNEL_3, PWM_PERIOD},
+    : m_ld2Output{*GPIOB, LD2_Pin},
+      m_ld3Output{*GPIOB, LD3_Pin},
+      m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
+      m_ld2{m_ld2Output},
+      m_ld3{m_ld3Output},
+      m_ld1{m_ld1Output},
       m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
       m_canBus{hcan},
       m_logger{logger},
@@ -23,7 +26,6 @@ App::App(CAN_HandleTypeDef& hcan,
 
 void App::init()
 {
-    m_ld1.start();
     const auto canStatus = m_canBus.init();
     HAL_TIM_Base_Start_IT(&m_tickTimer);
     logBootBanner(canStatus);
@@ -97,9 +99,9 @@ void App::animateLeds()
     }
 
     brightness += step;
-    if (brightness >= static_cast<std::int32_t>(PWM_PERIOD))
+    if (brightness >= 100)
     {
-        brightness = static_cast<std::int32_t>(PWM_PERIOD);
+        brightness = 100;
         step = -FADE_STEP;
     }
     else if (brightness <= 0)
@@ -107,7 +109,7 @@ void App::animateLeds()
         brightness = 0;
         step = FADE_STEP;
     }
-    m_ld1.setBrightness(static_cast<std::uint32_t>(brightness));
+    m_ld1.setBrightnessPercent(static_cast<std::uint8_t>(brightness));
 }
 
 void App::sendHeartbeat()
