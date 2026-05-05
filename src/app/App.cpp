@@ -13,7 +13,7 @@ App::App(CAN_HandleTypeDef& hcan,
          ILogger&           logger)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
-      m_ld1Output{htimPwm, TIM_CHANNEL_3, PWM_PERIOD},
+      m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
       m_ld2{m_ld2Output},
       m_ld3{m_ld3Output},
       m_ld1{m_ld1Output},
