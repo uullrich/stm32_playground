@@ -54,6 +54,7 @@ target_compile_options(unit_tests PRIVATE
 
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
+    GTest::gmock
 )
 
 include(GoogleTest)
