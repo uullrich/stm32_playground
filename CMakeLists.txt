@@ -50,6 +50,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/app/App.cpp
     src/app/AppFacade.cpp
+    src/drivers/adc_input/AdcInput.cpp
     src/drivers/can_bus/CanBus.cpp
     src/drivers/digital_output/DigitalOutput.cpp
     src/drivers/pwm_output/PwmOutput.cpp
@@ -63,6 +64,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/app
+    src/drivers/adc_input
     src/drivers/can_bus
     src/drivers/digital_output
     src/drivers/pwm_output

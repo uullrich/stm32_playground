@@ -3,6 +3,8 @@
 
 #include <optional>
 
+extern ADC_HandleTypeDef hadc1;
+
 namespace
 {
 std::optional<uullrich::playground::UartLogger> g_logger;
@@ -16,7 +18,7 @@ extern "C"
                   UART_HandleTypeDef* huart)
     {
         g_logger.emplace(*huart);
-        g_app.emplace(*hcan, *htimPwm, *htimTick, *g_logger);
+        g_app.emplace(*hcan, *htimPwm, *htimTick, *g_logger, hadc1);
         g_app->init();
     }
 

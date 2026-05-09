@@ -8,7 +8,7 @@ namespace uullrich::playground
 {
 
 App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
-         const ILogger& logger)
+         const ILogger& logger, ADC_HandleTypeDef& hadc)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
       m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
@@ -18,6 +18,8 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
       m_canBus{hcan},
       m_logger{logger},
+      m_adcAfterPoti{hadc, ADC_CHANNEL_3},
+      m_adcLedAnode{hadc, ADC_CHANNEL_10},
       m_tickTimer{htimTick}
 {
 }
@@ -62,7 +64,12 @@ void App::run()
     if ((now - m_lastHeartbeatTick) >= HEARTBEAT_PERIOD_MS)
     {
         m_lastHeartbeatTick = now;
-        sendHeartbeat();
+        // sendHeartbeat();
+    }
+    if ((now - m_lastLedMeasureTick) >= LED_MEASURE_PERIOD_MS)
+    {
+        m_lastLedMeasureTick = now;
+        logLedMeasurement();
     }
 }
 
@@ -120,6 +127,22 @@ void App::animateLeds()
         step = FADE_STEP;
     }
     m_led1.setBrightnessPercent(brightness);
+}
+
+void App::logLedMeasurement()
+{
+    const std::uint16_t voltageAfterPotiMv = m_adcAfterPoti.readMillivolts();
+    const std::uint16_t voltageLedAnodeMv = m_adcLedAnode.readMillivolts();
+
+    const std::uint16_t ledVoltageMv = voltageLedAnodeMv;
+    const std::uint32_t ledCurrentUa =
+        (voltageAfterPotiMv > voltageLedAnodeMv)
+            ? ((static_cast<std::uint32_t>(voltageAfterPotiMv - voltageLedAnodeMv) * 1000u) /
+               SERIES_RESISTOR_OHMS)
+            : 0u;
+
+    m_logger.printf("LED: V=%u mV  I=%lu uA\r\n", static_cast<unsigned>(ledVoltageMv),
+                    static_cast<unsigned long>(ledCurrentUa));
 }
 
 void App::sendHeartbeat()
