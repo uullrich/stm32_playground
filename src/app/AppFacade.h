@@ -9,7 +9,7 @@ extern "C"
 #endif
 
     void app_init(CAN_HandleTypeDef* hcan, TIM_HandleTypeDef* htimPwm, TIM_HandleTypeDef* htimTick,
-                  UART_HandleTypeDef* huart);
+                  UART_HandleTypeDef* huart, ADC_HandleTypeDef* hadc);
 
     void app_run(void);
 

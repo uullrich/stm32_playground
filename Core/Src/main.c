@@ -109,7 +109,7 @@ int main(void)
   MX_CAN1_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  app_init(&hcan1, &htim3, &htim6, &huart3);
+  app_init(&hcan1, &htim3, &htim6, &huart3, &hadc1);
   /* USER CODE END 2 */
 
   /* Infinite loop */

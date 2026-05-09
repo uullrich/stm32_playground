@@ -68,7 +68,7 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 ## Test scope
 
 Tested on host: `RingBuffer`, `CanMessage`, `ILogger::printf` formatting (via `CapturingLogger` test double).
-Not unit-tested (verified on hardware only): `DigitalLed`, `PwmLed`, `Button`, `UartLogger`, `CanBus`.
+Not unit-tested (verified on hardware only): `DigitalLed`, `PwmLed`, `Button`, `UartLogger`, `CanBus`, `AdcInput`.
 Do not add host tests for the thin HAL wrappers.
 
 ## Hardware
@@ -76,3 +76,10 @@ Do not add host tests for the thin HAL wrappers.
 - Board: NUCLEO-F767ZI, MCU: STM32F767ZIT6 (Cortex-M7, 96 MHz, 2 MB Flash, 512 KB RAM)
 - CAN1 runs in internal loopback mode — no transceiver required. PA11 (CAN1_RX) needs `GPIO_PULLUP`; without it the pin floats low (dominant bus) and `HAL_CAN_Start` times out.
 - UART: USART3 on PD8/PD9, 115200 8N1, routed to ST-LINK virtual COM port.
+- ADC: ADC1, 12-bit, software-triggered single conversion. Two channels in use:
+  - A0 / PA3 / ADC1_IN3: voltage after potentiometer (before series resistor)
+  - A1 / PC0 / ADC1_IN10: voltage at LED anode
+  - Series resistor between A0 and A1: 220 Ω
+  - Circuit: 3.3V → potentiometer → A0 → 220 Ω → A1 → LED → GND
+  - LED voltage = V_A1; LED current = (V_A0 − V_A1) / 220 Ω
+  - `AdcInput` reconfigures the channel sequencer before each single-shot read (no DMA, no scan mode).
