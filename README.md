@@ -2,7 +2,8 @@
 
 STM32 firmware playground built around modern C++20 wrappers over the STMicro HAL.
 Drives the onboard LEDs from a timer ISR, debounces the USER button through EXTI,
-sends periodic CAN frames in loopback mode, and prints received frames over UART.
+sends periodic CAN frames in loopback mode, prints received frames over UART, and
+measures the voltage and current of an external LED via two ADC channels.
 
 ---
 
@@ -25,6 +26,8 @@ sends periodic CAN frames in loopback mode, and prints received frames over UART
 | UART RX      | PD9  | USART3_RX  |                                      |
 | CAN1 RX      | PA11 | CAN1_RX    | Loopback mode (no transceiver)       |
 | CAN1 TX      | PA12 | CAN1_TX    |                                      |
+| A0 (ADC in)  | PA3  | ADC1_IN3   | Voltage after potentiometer          |
+| A1 (ADC in)  | PC0  | ADC1_IN10  | Voltage at external LED anode        |
 
 ### Clock tree
 
@@ -39,6 +42,7 @@ sends periodic CAN frames in loopback mode, and prints received frames over UART
 - **TIM6** — basic timer @ 100 Hz (10 ms period). Drives `HAL_TIM_PeriodElapsedCallback`, which advances the LED animation. `Prescaler = 9599, Period = 99`.
 - **USART3** — 115200 8N1, no flow control. Visible on the host as `/dev/cu.usbmodem*` (macOS) / `COMx` (Windows) / `/dev/ttyACM*` (Linux).
 - **CAN1** — 500 kbit/s, internal loopback. Bit timing `Prescaler = 6, BS1 = 11 TQ, BS2 = 4 TQ` (75 % sample point) against 48 MHz APB1. Accept-all software filter on FIFO 0.
+- **ADC1** — 12-bit, software-triggered single conversion, 3-cycle sampling, clock div/4 (24 MHz). Two channels read sequentially by reconfiguring the sequencer before each read (no DMA, no scan mode). Circuit: `3.3V → potentiometer → A0 → 220 Ω → A1 → LED → GND`. LED voltage = V_A1; LED current = (V_A0 − V_A1) / 220 Ω. Sampled every 1 s in the main loop.
 - **EXTI13** — rising-edge interrupt on the USER button; debounce handled in software using `HAL_GetTick()`.
 
 ---
@@ -56,8 +60,9 @@ stm32_playground/
 │   │   ├── app.hpp / .cpp                 orchestrator
 │   │   └── app_facade.h / .cpp            C ABI bridge into main.c
 │   ├── drivers/                           peripheral wrappers
-│   │   ├── led/        digital + PWM LEDs
-│   │   ├── button/     debounced EXTI button
+│   │   ├── adc_input/  AdcInput (single-channel polling ADC)
+│   │   ├── digital_output/  DigitalOutput (GPIO)
+│   │   ├── pwm_output/ PwmOutput (timer compare)
 │   │   ├── can_bus/    CanBus + CanMessage
 │   │   └── logger/     ILogger interface + UartLogger
 │   └── util/
@@ -95,8 +100,9 @@ power-on
               │           └── Logger::printf("=== stm32_playground booted ===")
               └── while (1) app_run()
                     └── uullrich::playground::App::run()
-                          ├── process_received_messages()  drain RX queue → log over UART
-                          └── send_heartbeat() every 500 ms
+                          ├── processReceivedMessages()  drain RX queue → log over UART
+                          ├── sendHeartbeat() every 500 ms
+                          └── logLedMeasurement() every 1 s  → read ADC, log V + I
 ```
 
 ### Interrupt dispatch
@@ -127,6 +133,7 @@ Two routing patterns are used:
 | `uullrich::playground::UartLogger`             | class (`final`)   | `ILogger` implementation backed by `HAL_UART_Transmit`.                         |
 | `uullrich::playground::CanBus`                 | class             | HAL_CAN wrapper; owns RX + TX `RingBuffer<CanMessage, 16>`.                     |
 | `uullrich::playground::CanMessage`             | struct            | POD frame: id, std::array<uint8_t,8>, length, extended/remote flags.            |
+| `uullrich::playground::AdcInput`               | class             | Single-channel ADC read: reconfigures sequencer, triggers, polls, returns mV.  |
 | `uullrich::playground::RingBuffer<T, N>`       | class template    | Lock-free single-producer / single-consumer FIFO. Power-of-two capacity.        |
 
 ### Design choices
@@ -169,7 +176,7 @@ cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
 ```
 
-Tests cover the parts that have their own behaviour worth verifying — `RingBuffer`, `CanMessage`, and `ILogger::printf` formatting via a `CapturingLogger` test double. The thin HAL wrappers (`DigitalLed`, `Button`, `UartLogger`, `CanBus`) are deliberately not unit-tested on the host; their behaviour is verified on real hardware.
+Tests cover the parts that have their own behaviour worth verifying — `RingBuffer`, `CanMessage`, and `ILogger::printf` formatting via a `CapturingLogger` test double. The thin HAL wrappers (`DigitalLed`, `Button`, `UartLogger`, `CanBus`, `AdcInput`) are deliberately not unit-tested on the host; their behaviour is verified on real hardware.
 
 ---
 
@@ -193,8 +200,11 @@ After flashing:
    === stm32_playground booted ===
    RX  id=0x123  dlc=4  data=[DE AD BE 00]
    RX  id=0x123  dlc=4  data=[DE AD BE 01]
+   LED: V=2149 mV  I=4963 uA
    RX  id=0x123  dlc=4  data=[DE AD BE 02]
    ...
    ```
 
-   The trailing byte is a counter; it wraps every 256 frames.
+   The CAN counter byte wraps every 256 frames. The LED line appears every 1 s; turning the potentiometer changes the current and forward voltage in real time.
+
+5. **ADC measurement** — connect the external circuit (`3.3V → potentiometer → PA3 → 220 Ω → PC0 → LED → GND`). The reported forward voltage should be ~1.8–2.2 V for a red/yellow LED; current depends on the potentiometer position (5–20 mA typical).
