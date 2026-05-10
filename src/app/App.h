@@ -25,7 +25,7 @@ class App final
     void init();
     void run();
 
-    void onTick(TIM_HandleTypeDef* htim);
+    void onTick(const TIM_HandleTypeDef* htim);
     void onExti(std::uint16_t pin);
 
   private:
@@ -33,7 +33,7 @@ class App final
     void animateLeds();
     void sendHeartbeat();
     void processReceivedMessages();
-    void logReceived(const CanMessage& msg);
+    void logReceived(const CanMessage& msg) const;
     void logBootBanner(CanBus::Status canStatus);
 
     void logLedMeasurement();

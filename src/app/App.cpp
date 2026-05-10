@@ -33,27 +33,7 @@ void App::init()
 
 void App::logBootBanner(CanBus::Status canStatus)
 {
-    using enum CanBus::Status;
-    const char* canStr = nullptr;
-    switch (canStatus)
-    {
-    case Ok:
-        canStr = "OK";
-        break;
-    case FilterError:
-        canStr = "ERR:filter";
-        break;
-    case StartError:
-        canStr = "ERR:start";
-        break;
-    case NotifyError:
-        canStr = "ERR:notify";
-        break;
-    case TxQueueFull:
-        canStr = "ERR:txfull";
-        break;
-    }
-    m_logger.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", canStr);
+    m_logger.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", CanBus::toString(canStatus));
 }
 
 void App::run()
@@ -64,7 +44,7 @@ void App::run()
     if ((now - m_lastHeartbeatTick) >= HEARTBEAT_PERIOD_MS)
     {
         m_lastHeartbeatTick = now;
-        // sendHeartbeat();
+        sendHeartbeat();
     }
     if ((now - m_lastLedMeasureTick) >= LED_MEASURE_PERIOD_MS)
     {
@@ -73,7 +53,7 @@ void App::run()
     }
 }
 
-void App::onTick(TIM_HandleTypeDef* htim)
+void App::onTick(const TIM_HandleTypeDef* htim)
 {
     if (htim == &m_tickTimer && m_ledsActive)
     {
@@ -166,7 +146,7 @@ void App::processReceivedMessages()
     }
 }
 
-void App::logReceived(const CanMessage& msg)
+void App::logReceived(const CanMessage& msg) const
 {
     char payload[3 * CanMessage::MAX_LEN + 1] = {};
     std::size_t offset = 0;

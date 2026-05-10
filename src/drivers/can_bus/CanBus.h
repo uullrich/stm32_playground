@@ -35,6 +35,8 @@ class CanBus
     void onRx();
     void onTxComplete();
 
+    [[nodiscard]] static const char* toString(Status status);
+
   private:
     void drainTxQueue();
 
