@@ -72,6 +72,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/devices/led
     src/devices/button
     src/util
+    src/protocols/custom_can
 )
 
 # Add project symbols (macros)
