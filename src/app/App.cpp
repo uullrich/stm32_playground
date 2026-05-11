@@ -11,9 +11,11 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
          const ILogger& logger, ADC_HandleTypeDef& hadc)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
+      m_d6Output{*GPIOE, GPIO_PIN_9},
       m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
       m_led2{m_ld2Output},
       m_led3{m_ld3Output},
+      m_d6Led{m_d6Output},
       m_led1{m_ld1Output},
       m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
       m_d8Button{GPIO_PIN_12, BUTTON_DEBOUNCE_MS, [this]() { onD8ButtonPressed(); }},
@@ -32,7 +34,7 @@ void App::init()
     logBootBanner(canStatus);
 }
 
-void App::logBootBanner(CanBus::Status canStatus)
+void App::logBootBanner(CanBus::Status canStatus) const
 {
     m_logger.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", CanBus::toString(canStatus));
 }
@@ -79,9 +81,9 @@ void App::onButtonPressed()
     }
 }
 
-void App::onD8ButtonPressed() const
+void App::onD8ButtonPressed()
 {
-    m_logger.printf("D8 button pressed\r\n");
+    m_d6Led.toggle();
 }
 
 void App::animateLeds()

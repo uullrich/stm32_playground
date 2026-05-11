@@ -30,12 +30,12 @@ class App final
 
   private:
     void onButtonPressed();
-    void onD8ButtonPressed() const;
+    void onD8ButtonPressed();
     void animateLeds();
     void sendHeartbeat();
     void processReceivedMessages();
     void logReceived(const CanMessage& msg) const;
-    void logBootBanner(CanBus::Status canStatus);
+    void logBootBanner(CanBus::Status canStatus) const;
 
     void logLedMeasurement();
 
@@ -49,9 +49,11 @@ class App final
 
     DigitalOutput m_ld2Output;
     DigitalOutput m_ld3Output;
+    DigitalOutput m_d6Output;
     PwmOutput m_ld1Output;
     DigitalLed m_led2;
     DigitalLed m_led3;
+    DigitalLed m_d6Led;
     DimmableLed m_led1;
     Button m_button;
     Button m_d8Button;
