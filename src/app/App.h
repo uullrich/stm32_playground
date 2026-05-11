@@ -30,6 +30,7 @@ class App final
 
   private:
     void onButtonPressed();
+    void onD8ButtonPressed() const;
     void animateLeds();
     void sendHeartbeat();
     void processReceivedMessages();
@@ -53,6 +54,7 @@ class App final
     DigitalLed m_led3;
     DimmableLed m_led1;
     Button m_button;
+    Button m_d8Button;
     CanBus m_canBus;
     const ILogger& m_logger;
     AdcInput m_adcAfterPoti;

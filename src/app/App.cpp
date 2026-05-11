@@ -16,6 +16,7 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_led3{m_ld3Output},
       m_led1{m_ld1Output},
       m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
+      m_d8Button{GPIO_PIN_12, BUTTON_DEBOUNCE_MS, [this]() { onD8ButtonPressed(); }},
       m_canBus{hcan},
       m_logger{logger},
       m_adcAfterPoti{hadc, ADC_CHANNEL_3},
@@ -64,6 +65,7 @@ void App::onTick(const TIM_HandleTypeDef* htim)
 void App::onExti(std::uint16_t pin)
 {
     m_button.handleExti(pin);
+    m_d8Button.handleExti(pin);
 }
 
 void App::onButtonPressed()
@@ -75,6 +77,11 @@ void App::onButtonPressed()
         m_led3.off();
         m_led1.off();
     }
+}
+
+void App::onD8ButtonPressed() const
+{
+    m_logger.printf("D8 button pressed\r\n");
 }
 
 void App::animateLeds()
