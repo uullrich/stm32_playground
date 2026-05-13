@@ -42,7 +42,7 @@ class App final
     static constexpr std::int32_t FADE_STEP = 1;
     static constexpr std::uint32_t LD2_TICK_DIVIDER = 3;
     static constexpr std::uint32_t LD3_TICK_DIVIDER = 7;
-    static constexpr std::uint32_t BUTTON_DEBOUNCE_MS = 50;
+    static constexpr std::uint32_t BUTTON_DEBOUNCE_MS = 150;
     static constexpr std::uint32_t HEARTBEAT_PERIOD_MS = 500;
     static constexpr std::uint32_t LED_MEASURE_PERIOD_MS = 1000;
     static constexpr std::uint32_t SERIES_RESISTOR_OHMS = 220;
