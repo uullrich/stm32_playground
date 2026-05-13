@@ -59,6 +59,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/devices/button/Button.cpp
     src/drivers/logger/ILogger.cpp
     src/drivers/logger/UartLogger.cpp
+    src/protocols/custom_can/CustomCan.cpp
 )
 
 # Add include paths
