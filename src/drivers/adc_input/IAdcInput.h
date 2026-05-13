@@ -9,7 +9,7 @@ class IAdcInput
 {
 public:
     virtual ~IAdcInput() = default;
-    [[nodiscard]] virtual std::uint16_t readMillivolts() = 0;
+    [[nodiscard]] virtual uint16_t readMillivolts() = 0;
 };
 
 }

@@ -14,17 +14,17 @@ class Button : public IButton
   public:
     using PressHandler = std::function<void()>;
 
-    Button(std::uint16_t pin, std::uint32_t debounceMs, PressHandler onPress);
+    Button(uint16_t pin, uint32_t debounceMs, PressHandler onPress);
 
     Button(const Button&) = delete;
     Button& operator=(const Button&) = delete;
 
-    void handleExti(std::uint16_t triggeredPin) override;
+    void handleExti(uint16_t triggeredPin) override;
 
   private:
-    std::uint16_t m_pin;
-    std::uint32_t m_debounceMs;
-    std::uint32_t m_lastPressTick{0};
+    uint16_t m_pin;
+    uint32_t m_debounceMs;
+    uint32_t m_lastPressTick{0};
     PressHandler m_onPress;
 };
 

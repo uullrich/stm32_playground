@@ -13,7 +13,7 @@ enum class HeartbeatOperation
     Acknowledged
 };
 
-enum class IoOperation : std::uint16_t
+enum class IoOperation : uint16_t
 {
     ReadValue,
     WriteValue,
@@ -21,8 +21,8 @@ enum class IoOperation : std::uint16_t
     DisableObservation
 };
 
-using IoNumber = std::uint16_t;
-using IoValue = std::uint32_t;
+using IoNumber = uint16_t;
+using IoValue = uint32_t;
 
 struct IoConfiguration
 {

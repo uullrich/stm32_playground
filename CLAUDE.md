@@ -64,6 +64,11 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 - Method names must be camelCase
 - No implementations in the method definition in the header
 - A file may contain only one class, no more
+- use std::ignore when calling a method marked as [[nodiscard]] when the return value is not used
+- Fixed-width integer types: use without `std::` prefix; size types: use with `std::` prefix.  
+  ✗ `std::uint8_t`, `std::int16_t`, `std::size_t` → wrong for integers, wrong without prefix for size  
+  ✓ `uint8_t`, `uint16_t`, `int8_t`, `int16_t`, `uint32_t`, `int32_t` — no `std::`  
+  ✓ `std::size_t`, `std::ptrdiff_t` — always with `std::`
 
 ## Test scope
 

@@ -115,7 +115,7 @@ void CanBus::drainTxQueue()
         else
             header.StdId = msg.id;
 
-        std::uint32_t mailbox = 0;
+        uint32_t mailbox = 0;
         if (HAL_CAN_AddTxMessage(&m_hcan, &header, msg.data.data(), &mailbox) != HAL_OK)
             break;
     }
@@ -126,7 +126,7 @@ void CanBus::onRx()
     while (HAL_CAN_GetRxFifoFillLevel(&m_hcan, CAN_RX_FIFO0) > 0)
     {
         CAN_RxHeaderTypeDef header{};
-        std::array<std::uint8_t, CanMessage::MAX_LEN> data{};
+        std::array<uint8_t, CanMessage::MAX_LEN> data{};
 
         if (HAL_CAN_GetRxMessage(&m_hcan, CAN_RX_FIFO0, &header, data.data()) != HAL_OK)
             break;
@@ -135,7 +135,7 @@ void CanBus::onRx()
         msg.extended = (header.IDE == CAN_ID_EXT);
         msg.remote = (header.RTR == CAN_RTR_REMOTE);
         msg.id = msg.extended ? header.ExtId : header.StdId;
-        msg.length = static_cast<std::uint8_t>(header.DLC);
+        msg.length = static_cast<uint8_t>(header.DLC);
         msg.data = data;
 
         (void)m_rxQueue.push(msg);

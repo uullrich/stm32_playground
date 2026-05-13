@@ -52,8 +52,8 @@ class RingBuffer
     static constexpr std::size_t MASK = Capacity - 1;
 
     std::array<T, Capacity> m_buffer{};
-    std::atomic<std::uint32_t> m_head{0};
-    std::atomic<std::uint32_t> m_tail{0};
+    std::atomic<uint32_t> m_head{0};
+    std::atomic<uint32_t> m_tail{0};
 };
 
 }

@@ -3,13 +3,13 @@
 namespace uullrich::playground
 {
 
-AdcInput::AdcInput(ADC_HandleTypeDef& hadc, std::uint32_t channel)
+AdcInput::AdcInput(ADC_HandleTypeDef& hadc, uint32_t channel)
     : m_hadc{hadc},
       m_channel{channel}
 {
 }
 
-std::uint16_t AdcInput::readMillivolts()
+uint16_t AdcInput::readMillivolts()
 {
     // Reconfigured every call because multiple AdcInput instances share the same ADC handle.
     ADC_ChannelConfTypeDef channelConfiguration{};
@@ -20,10 +20,10 @@ std::uint16_t AdcInput::readMillivolts()
 
     HAL_ADC_Start(&m_hadc);
     HAL_ADC_PollForConversion(&m_hadc, POLL_TIMEOUT_MS);
-    const std::uint32_t raw = HAL_ADC_GetValue(&m_hadc);
+    const uint32_t raw = HAL_ADC_GetValue(&m_hadc);
     HAL_ADC_Stop(&m_hadc);
 
-    return static_cast<std::uint16_t>((raw * VREF_MV) / ADC_MAX_COUNT);
+    return static_cast<uint16_t>((raw * VREF_MV) / ADC_MAX_COUNT);
 }
 
 }

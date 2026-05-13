@@ -19,7 +19,7 @@ class UartLogger final : public ILogger
     void write(std::string_view text) const override;
 
   private:
-    static constexpr std::uint32_t TX_TIMEOUT_MS = 100;
+    static constexpr uint32_t TX_TIMEOUT_MS = 100;
 
     UART_HandleTypeDef& m_uart;
 };

@@ -26,7 +26,7 @@ class App final
     void run();
 
     void onTick(const TIM_HandleTypeDef* htim);
-    void onExti(std::uint16_t pin);
+    void onExti(uint16_t pin);
 
   private:
     void onButtonPressed();
@@ -39,13 +39,13 @@ class App final
 
     void logLedMeasurement();
 
-    static constexpr std::int32_t FADE_STEP = 1;
-    static constexpr std::uint32_t LD2_TICK_DIVIDER = 3;
-    static constexpr std::uint32_t LD3_TICK_DIVIDER = 7;
-    static constexpr std::uint32_t BUTTON_DEBOUNCE_MS = 150;
-    static constexpr std::uint32_t HEARTBEAT_PERIOD_MS = 500;
-    static constexpr std::uint32_t LED_MEASURE_PERIOD_MS = 1000;
-    static constexpr std::uint32_t SERIES_RESISTOR_OHMS = 220;
+    static constexpr int32_t FADE_STEP = 1;
+    static constexpr uint32_t LD2_TICK_DIVIDER = 3;
+    static constexpr uint32_t LD3_TICK_DIVIDER = 7;
+    static constexpr uint32_t BUTTON_DEBOUNCE_MS = 150;
+    static constexpr uint32_t HEARTBEAT_PERIOD_MS = 500;
+    static constexpr uint32_t LED_MEASURE_PERIOD_MS = 1000;
+    static constexpr uint32_t SERIES_RESISTOR_OHMS = 220;
 
     DigitalOutput m_ld2Output;
     DigitalOutput m_ld3Output;
@@ -64,8 +64,8 @@ class App final
 
     TIM_HandleTypeDef& m_tickTimer;
     bool m_ledsActive{true};
-    std::uint32_t m_lastHeartbeatTick{0};
-    std::uint32_t m_lastLedMeasureTick{0};
+    uint32_t m_lastHeartbeatTick{0};
+    uint32_t m_lastLedMeasureTick{0};
 };
 
 }

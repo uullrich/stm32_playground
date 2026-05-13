@@ -9,7 +9,7 @@ class IButton
 {
   public:
     virtual ~IButton() = default;
-    virtual void handleExti(std::uint16_t triggeredPin) = 0;
+    virtual void handleExti(uint16_t triggeredPin) = 0;
 };
 
 }

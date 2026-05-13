@@ -29,7 +29,7 @@ void DimmableLed::toggle()
         on();
 }
 
-void DimmableLed::setBrightnessPercent(std::uint8_t percent)
+void DimmableLed::setBrightnessPercent(uint8_t percent)
 {
     if (percent > 100)
         percent = 100;

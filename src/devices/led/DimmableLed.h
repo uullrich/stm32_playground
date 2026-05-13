@@ -19,7 +19,7 @@ class DimmableLed : public IDimmableLed
     void on() override;
     void off() override;
     void toggle() override;
-    void setBrightnessPercent(std::uint8_t percent) override;
+    void setBrightnessPercent(uint8_t percent) override;
 
   private:
     IPwmOutput& m_output;

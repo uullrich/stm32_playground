@@ -3,7 +3,7 @@
 namespace uullrich::playground
 {
 
-DigitalOutput::DigitalOutput(GPIO_TypeDef& port, std::uint16_t pin)
+DigitalOutput::DigitalOutput(GPIO_TypeDef& port, uint16_t pin)
     : m_port{port},
       m_pin{pin}
 {

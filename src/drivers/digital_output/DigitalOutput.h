@@ -11,7 +11,7 @@ namespace uullrich::playground
 class DigitalOutput : public IDigitalOutput
 {
   public:
-    DigitalOutput(GPIO_TypeDef& port, std::uint16_t pin);
+    DigitalOutput(GPIO_TypeDef& port, uint16_t pin);
 
     DigitalOutput(const DigitalOutput&) = delete;
     DigitalOutput& operator=(const DigitalOutput&) = delete;
@@ -21,7 +21,7 @@ class DigitalOutput : public IDigitalOutput
 
   private:
     GPIO_TypeDef& m_port;
-    std::uint16_t m_pin;
+    uint16_t m_pin;
 };
 
 }

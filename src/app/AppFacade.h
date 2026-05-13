@@ -1,5 +1,4 @@
-#ifndef APPFACADE_H
-#define APPFACADE_H
+#pragma once
 
 #include "stm32f7xx_hal.h"
 
@@ -15,6 +14,4 @@ extern "C"
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

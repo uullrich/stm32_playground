@@ -43,7 +43,7 @@ void App::run()
 {
     processReceivedMessages();
 
-    const std::uint32_t now = HAL_GetTick();
+    const uint32_t now = HAL_GetTick();
     if ((now - m_lastHeartbeatTick) >= HEARTBEAT_PERIOD_MS)
     {
         m_lastHeartbeatTick = now;
@@ -64,7 +64,7 @@ void App::onTick(const TIM_HandleTypeDef* htim)
     }
 }
 
-void App::onExti(std::uint16_t pin)
+void App::onExti(uint16_t pin)
 {
     m_button.handleExti(pin);
     m_d8Button.handleExti(pin);
@@ -88,10 +88,10 @@ void App::onD8ButtonPressed()
 
 void App::animateLeds()
 {
-    static std::uint32_t led2Counter = 0;
-    static std::uint32_t led3Counter = 0;
-    static std::uint8_t brightness = 0;
-    static std::uint8_t step = FADE_STEP;
+    static uint32_t led2Counter = 0;
+    static uint32_t led3Counter = 0;
+    static uint8_t brightness = 0;
+    static uint8_t step = FADE_STEP;
 
     if (++led2Counter >= LD2_TICK_DIVIDER)
     {
@@ -120,13 +120,13 @@ void App::animateLeds()
 
 void App::logLedMeasurement()
 {
-    const std::uint16_t voltageAfterPotiMv = m_adcAfterPoti.readMillivolts();
-    const std::uint16_t voltageLedAnodeMv = m_adcLedAnode.readMillivolts();
+    const uint16_t voltageAfterPotiMv = m_adcAfterPoti.readMillivolts();
+    const uint16_t voltageLedAnodeMv = m_adcLedAnode.readMillivolts();
 
-    const std::uint16_t ledVoltageMv = voltageLedAnodeMv;
-    const std::uint32_t ledCurrentUa =
+    const uint16_t ledVoltageMv = voltageLedAnodeMv;
+    const uint32_t ledCurrentUa =
         (voltageAfterPotiMv > voltageLedAnodeMv)
-            ? ((static_cast<std::uint32_t>(voltageAfterPotiMv - voltageLedAnodeMv) * 1000u) /
+            ? ((static_cast<uint32_t>(voltageAfterPotiMv - voltageLedAnodeMv) * 1000u) /
                SERIES_RESISTOR_OHMS)
             : 0u;
 
@@ -136,14 +136,14 @@ void App::logLedMeasurement()
 
 void App::sendHeartbeat()
 {
-    static std::uint8_t counter = 0;
+    static uint8_t counter = 0;
 
     CanMessage msg{};
     msg.id = 0x123;
     msg.length = 4;
     msg.data = {0xDE, 0xAD, 0xBE, counter++};
 
-    (void)m_canBus.send(msg);
+    std::ignore = m_canBus.send(msg);
 }
 
 void App::processReceivedMessages()
@@ -159,7 +159,7 @@ void App::logReceived(const CanMessage& msg) const
 {
     char payload[3 * CanMessage::MAX_LEN + 1] = {};
     std::size_t offset = 0;
-    for (std::uint8_t i = 0; i < msg.length; ++i)
+    for (uint8_t i = 0; i < msg.length; ++i)
     {
         const int written = std::snprintf(payload + offset, sizeof(payload) - offset,
                                           (i == 0) ? "%02X" : " %02X", msg.data[i]);
