@@ -45,7 +45,6 @@ using CustomCanNodeId = uint8_t;
 
 constexpr CustomCanNodeId CUSTOM_CAN_BROADCAST_NODE = 0;
 constexpr CustomCanNodeId CUSTOM_CAN_MAX_NODE_ID = 0x7F;
-constexpr uint16_t CUSTOM_CAN_PWM_MAX = 10000;
 
 struct CustomCanIoAddress
 {
@@ -97,14 +96,21 @@ struct CustomCanError
 [[nodiscard]] uint32_t encodeCustomCanId(CustomCanCommand command, CustomCanNodeId node);
 [[nodiscard]] CustomCanFrameId decodeCustomCanId(uint32_t id);
 
-[[nodiscard]] CanMessage encodeSetRequest(CustomCanNodeId target, const CustomCanSetRequest& request);
-[[nodiscard]] CanMessage encodeSetResponse(CustomCanNodeId sender, const CustomCanValueResponse& response);
-[[nodiscard]] CanMessage encodeGetRequest(CustomCanNodeId target, const CustomCanGetRequest& request);
-[[nodiscard]] CanMessage encodeGetResponse(CustomCanNodeId sender, const CustomCanValueResponse& response);
+[[nodiscard]] CanMessage encodeSetRequest(CustomCanNodeId target,
+                                          const CustomCanSetRequest& request);
+[[nodiscard]] CanMessage encodeSetResponse(CustomCanNodeId sender,
+                                           const CustomCanValueResponse& response);
+[[nodiscard]] CanMessage encodeGetRequest(CustomCanNodeId target,
+                                          const CustomCanGetRequest& request);
+[[nodiscard]] CanMessage encodeGetResponse(CustomCanNodeId sender,
+                                           const CustomCanValueResponse& response);
 [[nodiscard]] CanMessage encodeEvent(CustomCanNodeId sender, const CustomCanValueResponse& event);
-[[nodiscard]] CanMessage encodeObserveStart(CustomCanNodeId target, const CustomCanObserveStart& request);
-[[nodiscard]] CanMessage encodeObserveStop(CustomCanNodeId target, const CustomCanObserveStop& request);
-[[nodiscard]] CanMessage encodeObserveResponse(CustomCanNodeId sender, const CustomCanValueResponse& response);
+[[nodiscard]] CanMessage encodeObserveStart(CustomCanNodeId target,
+                                            const CustomCanObserveStart& request);
+[[nodiscard]] CanMessage encodeObserveStop(CustomCanNodeId target,
+                                           const CustomCanObserveStop& request);
+[[nodiscard]] CanMessage encodeObserveResponse(CustomCanNodeId sender,
+                                               const CustomCanValueResponse& response);
 [[nodiscard]] CanMessage encodeError(CustomCanNodeId sender, const CustomCanError& error);
 [[nodiscard]] CanMessage encodeHeartbeat(CustomCanNodeId sender);
 

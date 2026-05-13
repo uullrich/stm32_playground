@@ -27,4 +27,9 @@ uint32_t PwmOutput::period() const
     return m_period;
 }
 
+uint32_t PwmOutput::getPulse() const
+{
+    return __HAL_TIM_GET_COMPARE(&m_timer, m_channel);
+}
+
 }

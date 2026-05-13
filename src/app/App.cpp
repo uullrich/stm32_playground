@@ -3,6 +3,7 @@
 #include "main.h"
 
 #include <cstdio>
+#include <tuple>
 
 namespace uullrich::playground
 {
@@ -23,6 +24,8 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_logger{logger},
       m_adcAfterPoti{hadc, ADC_CHANNEL_3},
       m_adcLedAnode{hadc, ADC_CHANNEL_10},
+      m_ioLayer{m_ld2Output, m_ld3Output, m_d6Output, m_ld1Output, m_adcAfterPoti, m_adcLedAnode},
+      m_canDispatcher{m_canBus, m_ioLayer.repository(), NODE_ID},
       m_tickTimer{htimTick}
 {
 }
@@ -34,9 +37,9 @@ void App::init()
     logBootBanner(canStatus);
 }
 
-void App::logBootBanner(CanBus::Status canStatus) const
+void App::logBootBanner(ICanBus::Status canStatus) const
 {
-    m_logger.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", CanBus::toString(canStatus));
+    m_logger.printf("\r\n=== stm32_playground booted === CAN:%s\r\n", ICanBus::toString(canStatus));
 }
 
 void App::run()
@@ -148,10 +151,11 @@ void App::sendHeartbeat()
 
 void App::processReceivedMessages()
 {
-    CanMessage msg;
-    while (m_canBus.receive(msg))
+    CanMessage message;
+    while (m_canBus.receive(message))
     {
-        logReceived(msg);
+        if (!m_canDispatcher.dispatch(message))
+            logReceived(message);
     }
 }
 

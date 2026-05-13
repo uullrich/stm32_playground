@@ -18,6 +18,7 @@ class DigitalOutput : public IDigitalOutput
 
     void set(bool state) override;
     void toggle() override;
+    [[nodiscard]] bool readState() const override;
 
   private:
     GPIO_TypeDef& m_port;

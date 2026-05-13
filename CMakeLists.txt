@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/app/AppFacade.cpp
     src/drivers/adc_input/AdcInput.cpp
     src/drivers/can_bus/CanBus.cpp
+    src/drivers/can_bus/ICanBus.cpp
     src/drivers/digital_output/DigitalOutput.cpp
     src/drivers/pwm_output/PwmOutput.cpp
     src/devices/led/DigitalLed.cpp
@@ -60,6 +61,15 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/drivers/logger/ILogger.cpp
     src/drivers/logger/UartLogger.cpp
     src/protocols/custom_can/CustomCan.cpp
+    src/drivers/digital_input/DigitalInput.cpp
+    src/io/VirtualDigitalInput.cpp
+    src/io/VirtualDigitalOutput.cpp
+    src/io/VirtualPwmOutput.cpp
+    src/io/VirtualAdcInput.cpp
+    src/io/IoRepository.cpp
+    src/io/IoRepositoryBuilder.cpp
+    src/io/IoLayer.cpp
+    src/io/CanDispatcher.cpp
 )
 
 # Add include paths
@@ -74,6 +84,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/devices/button
     src/util
     src/protocols/custom_can
+    src/drivers/digital_input
+    src/io
 )
 
 # Add project symbols (macros)

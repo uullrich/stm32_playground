@@ -45,20 +45,6 @@ CAN_HandleTypeDef* CanBus::halHandle() const
     return &m_hcan;
 }
 
-const char* CanBus::toString(Status status)
-{
-    using enum Status;
-    switch (status)
-    {
-    case Ok:          return "OK";
-    case FilterError: return "ERR:filter";
-    case StartError:  return "ERR:start";
-    case NotifyError: return "ERR:notify";
-    case TxQueueFull: return "ERR:txfull";
-    }
-    return "ERR:unknown";
-}
-
 CanBus::Status CanBus::init()
 {
     using enum Status;

@@ -9,6 +9,7 @@ class IDigitalOutput
     virtual ~IDigitalOutput() = default;
     virtual void set(bool state) = 0;
     virtual void toggle() = 0;
+    [[nodiscard]] virtual bool readState() const = 0;
 };
 
 }

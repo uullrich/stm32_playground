@@ -19,6 +19,7 @@ class PwmOutput : public IPwmOutput
     void start() override;
     void setPulse(uint32_t pulse) override;
     [[nodiscard]] uint32_t period() const override;
+    [[nodiscard]] uint32_t getPulse() const override;
 
   private:
     TIM_HandleTypeDef& m_timer;

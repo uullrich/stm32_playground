@@ -15,8 +15,7 @@ void writeU16(uint8_t* destination, uint16_t value)
 
 uint16_t readU16(const uint8_t* source)
 {
-    return static_cast<uint16_t>(source[0])
-         | (static_cast<uint16_t>(source[1]) << 8);
+    return static_cast<uint16_t>(source[0]) | (static_cast<uint16_t>(source[1]) << 8);
 }
 
 void writeU32(uint8_t* destination, uint32_t value)
@@ -29,10 +28,8 @@ void writeU32(uint8_t* destination, uint32_t value)
 
 uint32_t readU32(const uint8_t* source)
 {
-    return static_cast<uint32_t>(source[0])
-         | (static_cast<uint32_t>(source[1]) << 8)
-         | (static_cast<uint32_t>(source[2]) << 16)
-         | (static_cast<uint32_t>(source[3]) << 24);
+    return static_cast<uint32_t>(source[0]) | (static_cast<uint32_t>(source[1]) << 8) |
+           (static_cast<uint32_t>(source[2]) << 16) | (static_cast<uint32_t>(source[3]) << 24);
 }
 
 bool isStandardDataFrame(const uullrich::playground::CanMessage& message, uint8_t expectedLength)

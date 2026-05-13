@@ -2,12 +2,15 @@
 
 #include "AdcInput.h"
 #include "CanBus.h"
+#include "CustomCan.h"
 #include "ILogger.h"
 #include "DigitalOutput.h"
 #include "PwmOutput.h"
 #include "DigitalLed.h"
 #include "DimmableLed.h"
 #include "Button.h"
+#include "CanDispatcher.h"
+#include "IoLayer.h"
 #include "stm32f7xx_hal.h"
 
 namespace uullrich::playground
@@ -35,9 +38,11 @@ class App final
     void sendHeartbeat();
     void processReceivedMessages();
     void logReceived(const CanMessage& msg) const;
-    void logBootBanner(CanBus::Status canStatus) const;
+    void logBootBanner(ICanBus::Status canStatus) const;
 
     void logLedMeasurement();
+
+    static constexpr CustomCanNodeId NODE_ID = 1;
 
     static constexpr int32_t FADE_STEP = 1;
     static constexpr uint32_t LD2_TICK_DIVIDER = 3;
@@ -61,6 +66,9 @@ class App final
     const ILogger& m_logger;
     AdcInput m_adcAfterPoti;
     AdcInput m_adcLedAnode;
+
+    IoLayer       m_ioLayer;
+    CanDispatcher m_canDispatcher;
 
     TIM_HandleTypeDef& m_tickTimer;
     bool m_ledsActive{true};

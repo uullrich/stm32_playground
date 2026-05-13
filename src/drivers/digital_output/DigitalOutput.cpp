@@ -19,4 +19,9 @@ void DigitalOutput::toggle()
     HAL_GPIO_TogglePin(&m_port, m_pin);
 }
 
+bool DigitalOutput::readState() const
+{
+    return HAL_GPIO_ReadPin(&m_port, m_pin) == GPIO_PIN_SET;
+}
+
 }
