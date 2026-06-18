@@ -1,11 +1,11 @@
-#include "IoLayer.h"
+#include "IoConnector.h"
 #include "IoRepositoryBuilder.h"
 
 namespace uullrich::playground
 {
 
-IoLayer::IoLayer(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6, IPwmOutput& ld1,
-                 IAdcInput& adcPoti, IAdcInput& adcAnode)
+IoConnector::IoConnector(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6,
+                         IPwmOutput& ld1, IAdcInput& adcPoti, IAdcInput& adcAnode)
     : m_ld2{ld2, 0},
       m_ld3{ld3, 1},
       m_d6{d6, 2},
@@ -17,7 +17,7 @@ IoLayer::IoLayer(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6, I
         m_adcAnode);
 }
 
-IIoRepository& IoLayer::repository()
+IIoRepository& IoConnector::repository()
 {
     return m_repository;
 }

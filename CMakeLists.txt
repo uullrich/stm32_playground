@@ -68,7 +68,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/io/VirtualAdcInput.cpp
     src/io/IoRepository.cpp
     src/io/IoRepositoryBuilder.cpp
-    src/io/IoLayer.cpp
+    src/app/IoConnector.cpp
     src/io/CanDispatcher.cpp
 )
 

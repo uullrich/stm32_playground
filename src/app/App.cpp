@@ -24,8 +24,8 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_logger{logger},
       m_adcAfterPoti{hadc, ADC_CHANNEL_3},
       m_adcLedAnode{hadc, ADC_CHANNEL_10},
-      m_ioLayer{m_ld2Output, m_ld3Output, m_d6Output, m_ld1Output, m_adcAfterPoti, m_adcLedAnode},
-      m_canDispatcher{m_canBus, m_ioLayer.repository(), NODE_ID},
+      m_ioConnector{m_ld2Output, m_ld3Output, m_d6Output, m_ld1Output, m_adcAfterPoti, m_adcLedAnode},
+      m_canDispatcher{m_canBus, m_ioConnector.repository(), NODE_ID},
       m_tickTimer{htimTick}
 {
 }

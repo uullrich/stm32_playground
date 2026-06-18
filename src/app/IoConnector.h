@@ -12,10 +12,10 @@
 namespace uullrich::playground
 {
 
-class IoLayer
+class IoConnector
 {
   public:
-    IoLayer(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6, IPwmOutput& ld1,
+    IoConnector(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6, IPwmOutput& ld1,
             IAdcInput& adcPoti, IAdcInput& adcAnode);
 
     [[nodiscard]] IIoRepository& repository();

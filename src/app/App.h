@@ -10,7 +10,7 @@
 #include "DimmableLed.h"
 #include "Button.h"
 #include "CanDispatcher.h"
-#include "IoLayer.h"
+#include "IoConnector.h"
 #include "stm32f7xx_hal.h"
 
 namespace uullrich::playground
@@ -67,7 +67,7 @@ class App final
     AdcInput m_adcAfterPoti;
     AdcInput m_adcLedAnode;
 
-    IoLayer       m_ioLayer;
+    IoConnector   m_ioConnector;
     CanDispatcher m_canDispatcher;
 
     TIM_HandleTypeDef& m_tickTimer;
