@@ -5,6 +5,8 @@ Drives the onboard LEDs from a timer ISR, debounces the USER button through EXTI
 toggles an external LED (D6 / PE9) from an external pushbutton (D8 / PF12) over
 EXTI12, sends periodic CAN frames in loopback mode, prints received frames over
 UART, and measures the voltage and current of an external LED via two ADC channels.
+Reads a CQRobot VL53L1X distance sensor over I²C1 and reports distance and validity
+over UART at approximately 10 Hz.
 Also defines a small CAN-based request/response protocol (encoder/decoder only —
 see [CAN protocol](#can-protocol)).
 
@@ -33,6 +35,8 @@ see [CAN protocol](#can-protocol)).
 | CAN1 TX        | PA12 | CAN1_TX    |                                             |
 | A0 (ADC in)    | PA3  | ADC1_IN3   | Voltage after potentiometer                 |
 | A1 (ADC in)    | PC0  | ADC1_IN10  | Voltage at external LED anode               |
+| ToF SCL / D15 | PB8  | I2C1_SCL   | CQRobot VL53L1X, 100 kHz                    |
+| ToF SDA / D14 | PB9  | I2C1_SDA   | 7-bit sensor address 0x29                   |
 
 ### Clock tree
 
@@ -48,6 +52,7 @@ see [CAN protocol](#can-protocol)).
 - **USART3** — 115200 8N1, no flow control. Visible on the host as `/dev/cu.usbmodem*` (macOS) / `COMx` (Windows) / `/dev/ttyACM*` (Linux).
 - **CAN1** — 500 kbit/s, internal loopback. Bit timing `Prescaler = 6, BS1 = 11 TQ, BS2 = 4 TQ` (75 % sample point) against 48 MHz APB1. Accept-all software filter on FIFO 0.
 - **ADC1** — 12-bit, software-triggered single conversion, 3-cycle sampling, clock div/4 (24 MHz). Two channels read sequentially by reconfiguring the sequencer before each read (no DMA, no scan mode). Circuit: `3.3V → potentiometer → A0 → 220 Ω → A1 → LED → GND`. LED voltage = V_A1; LED current = (V_A0 − V_A1) / 220 Ω. Sampled every 1 s in the main loop.
+- **I2C1** — 100 kHz, PB8/PB9 (AF4 open-drain), 16 MHz HSI kernel clock, `TIMINGR = 0x00303D5B`. Analog filter enabled; digital filter and GPIO pull-ups disabled.
 - **EXTI13** — rising-edge interrupt on the USER button (PC13); debounce handled in software (150 ms) using `HAL_GetTick()`.
 - **EXTI12** — rising-edge interrupt on the D8 external button (PF12); same 150 ms software debounce. Press toggles the D6 external LED (PE9). D7/PF13 was avoided because it shares EXTI13 with the USER button.
 
@@ -416,7 +421,51 @@ cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
 ```
 
-Tests cover the parts that have their own behaviour worth verifying — `RingBuffer`, `CanMessage`, and `ILogger::printf` formatting via a `CapturingLogger` test double. The thin HAL wrappers (`DigitalLed`, `Button`, `UartLogger`, `CanBus`, `AdcInput`) are deliberately not unit-tested on the host; their behaviour is verified on real hardware.
+Tests cover `RingBuffer`, `CanMessage`, `ILogger::printf`, and sensor initialization,
+measurement validity, errors, and automatic recovery using a simulated I²C bus.
+Thin HAL wrappers require hardware checks.
+
+## CQRobot VL53L1X distance sensor
+
+### Wiring
+
+| Cable color | Signal | NUCLEO-F767ZI |
+| --- | --- | --- |
+| Red | VCC | 3V3 |
+| Black | GND | GND |
+| Blue | SCL | D15 / PB8 (CN7 pin 2) |
+| Green | SDA | D14 / PB9 (CN7 pin 4) |
+| Orange | INT | Unconnected; firmware polls readiness |
+| Yellow | SHUT | Unconnected if held high by the module |
+
+Colors refer to the [CQRobot original cable](https://m.media-amazon.com/images/I/8179E86d0RL.pdf);
+check the module labels. The user's setup works without additional pull-up resistors.
+
+### Operation
+
+- I²C address **0x29**, Long mode, **50 ms** measurement budget, approximately **10 Hz**.
+- In CoolTerm, select the board's `usbmodem` port, **115200 baud, 8N1**, no flow control,
+  then click **Connect**. Example output:
+
+```text
+VL53L1X: distance=523 mm status=0 valid=1 tick=204 ms
+```
+
+- Use distances only when **`valid=1`**. `valid=0` indicates an invalid optical result.
+- Runtime errors trigger automatic retries after a 1 s pause. UART reports
+  `retrying error=…` and `measurements resumed` when readings return.
+  `MEASUREMENT_TIMEOUT` means no new data for 500 ms; `TIMEOUT` is a transfer/operation
+  timeout. For `BUS_ERROR`, check wiring and power.
+- After failed initialization or loss of sensor power, fix the cause and reset the board.
+- API: call `IDistanceSensor::init()`, then `poll(Measurement&)`; consume samples only
+  on `Ok`. Keep polling after runtime errors so recovery can proceed.
+- Peripheral changes go through `Playground2.ioc` and CubeMX. Keep I²C1's **16 MHz HSI**
+  clock paired with `TIMINGR = 0x00303D5B` for nominal 100 kHz.
+
+UART readings are confirmed on hardware. Distance accuracy and recovery after pointing
+out of range still need hardware verification with the updated firmware.
+
+Driver source, license, and local patches: [ST ULD notes](third_party/vl53l1x_uld/README.md).
 
 ---
 

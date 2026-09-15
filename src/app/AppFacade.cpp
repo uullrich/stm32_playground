@@ -11,12 +11,13 @@ std::optional<uullrich::playground::App> g_app;
 
 extern "C"
 {
+    extern I2C_HandleTypeDef hi2c1;
 
     void app_init(CAN_HandleTypeDef* hcan, TIM_HandleTypeDef* htimPwm, TIM_HandleTypeDef* htimTick,
                   UART_HandleTypeDef* huart, ADC_HandleTypeDef* hadc)
     {
         g_logger.emplace(*huart);
-        g_app.emplace(*hcan, *htimPwm, *htimTick, *g_logger, *hadc);
+        g_app.emplace(*hcan, *htimPwm, *htimTick, *g_logger, *hadc, hi2c1);
         g_app->init();
     }
 

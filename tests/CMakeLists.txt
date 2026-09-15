@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.22)
 #   cmake --build build/tests
 #   ctest --test-dir build/tests --output-on-failure
 
-project(stm32_playground_tests CXX)
+project(stm32_playground_tests C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,12 +32,18 @@ add_executable(unit_tests
     util/RingBufferTest.cpp
     drivers/can_bus/CanMessageTest.cpp
     drivers/logger/ILoggerTest.cpp
+    devices/distance_sensor/Vl53l1xTest.cpp
 
     # --- production sources under test ---
     ${SRC_DIR}/drivers/logger/ILogger.cpp
+    ${SRC_DIR}/devices/distance_sensor/IDistanceSensor.cpp
+    ${SRC_DIR}/devices/distance_sensor/Vl53l1x.cpp
+    ${SRC_DIR}/devices/distance_sensor/Vl53l1xPlatform.cpp
+    ${SRC_DIR}/../third_party/vl53l1x_uld/VL53L1X_api.c
 
     # --- host stubs ---
     support/HalStub.cpp
+    support/SimulatedVl53l1xBus.cpp
 )
 
 target_include_directories(unit_tests PRIVATE
@@ -46,6 +52,9 @@ target_include_directories(unit_tests PRIVATE
     ${SRC_DIR}/util
     ${SRC_DIR}/drivers/can_bus
     ${SRC_DIR}/drivers/logger
+    ${SRC_DIR}/drivers/i2c_bus
+    ${SRC_DIR}/devices/distance_sensor
+    ${SRC_DIR}/../third_party/vl53l1x_uld
 )
 
 target_compile_options(unit_tests PRIVATE

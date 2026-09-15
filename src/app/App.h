@@ -11,6 +11,8 @@
 #include "Button.h"
 #include "CanDispatcher.h"
 #include "IoConnector.h"
+#include "I2cBus.h"
+#include "Vl53l1x.h"
 #include "stm32f7xx_hal.h"
 
 namespace uullrich::playground
@@ -20,7 +22,7 @@ class App final
 {
   public:
     App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
-        const ILogger& logger, ADC_HandleTypeDef& hadc);
+        const ILogger& logger, ADC_HandleTypeDef& hadc, I2C_HandleTypeDef& hi2c);
 
     App(const App&) = delete;
     App& operator=(const App&) = delete;
@@ -41,6 +43,7 @@ class App final
     void logBootBanner(ICanBus::Status canStatus) const;
 
     void logLedMeasurement();
+    void pollDistance();
 
     static constexpr CustomCanNodeId NODE_ID = 1;
 
@@ -51,6 +54,7 @@ class App final
     static constexpr uint32_t HEARTBEAT_PERIOD_MS = 500;
     static constexpr uint32_t LED_MEASURE_PERIOD_MS = 1000;
     static constexpr uint32_t SERIES_RESISTOR_OHMS = 220;
+    static constexpr uint32_t DISTANCE_POLL_PERIOD_MS = 10;
 
     DigitalOutput m_ld2Output;
     DigitalOutput m_ld3Output;
@@ -66,6 +70,8 @@ class App final
     const ILogger& m_logger;
     AdcInput m_adcAfterPoti;
     AdcInput m_adcLedAnode;
+    I2cBus m_i2cBus;
+    Vl53l1x m_distanceSensor;
 
     IoConnector   m_ioConnector;
     CanDispatcher m_canDispatcher;
@@ -74,6 +80,9 @@ class App final
     bool m_ledsActive{true};
     uint32_t m_lastHeartbeatTick{0};
     uint32_t m_lastLedMeasureTick{0};
+    uint32_t m_lastDistancePollTick{0};
+    bool m_distanceActive{false};
+    bool m_distanceRecovering{false};
 };
 
 }

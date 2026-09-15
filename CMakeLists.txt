@@ -49,6 +49,11 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/app/App.cpp
+    src/drivers/i2c_bus/I2cBus.cpp
+    src/devices/distance_sensor/IDistanceSensor.cpp
+    src/devices/distance_sensor/Vl53l1x.cpp
+    src/devices/distance_sensor/Vl53l1xPlatform.cpp
+    third_party/vl53l1x_uld/VL53L1X_api.c
     src/app/AppFacade.cpp
     src/drivers/adc_input/AdcInput.cpp
     src/drivers/can_bus/CanBus.cpp
@@ -75,6 +80,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/app
+    src/drivers/i2c_bus
+    src/devices/distance_sensor
+    third_party/vl53l1x_uld
     src/drivers/adc_input
     src/drivers/can_bus
     src/drivers/digital_output

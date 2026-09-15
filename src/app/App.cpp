@@ -9,7 +9,7 @@ namespace uullrich::playground
 {
 
 App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
-         const ILogger& logger, ADC_HandleTypeDef& hadc)
+         const ILogger& logger, ADC_HandleTypeDef& hadc, I2C_HandleTypeDef& hi2c)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
       m_d6Output{*GPIOE, GPIO_PIN_9},
@@ -24,6 +24,8 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_logger{logger},
       m_adcAfterPoti{hadc, ADC_CHANNEL_3},
       m_adcLedAnode{hadc, ADC_CHANNEL_10},
+      m_i2cBus{hi2c},
+      m_distanceSensor{m_i2cBus},
       m_ioConnector{m_ld2Output, m_ld3Output, m_d6Output, m_ld1Output, m_adcAfterPoti, m_adcLedAnode},
       m_canDispatcher{m_canBus, m_ioConnector.repository(), NODE_ID},
       m_tickTimer{htimTick}
@@ -35,6 +37,9 @@ void App::init()
     const auto canStatus = m_canBus.init();
     HAL_TIM_Base_Start_IT(&m_tickTimer);
     logBootBanner(canStatus);
+    const auto sensorStatus = m_distanceSensor.init();
+    m_distanceActive = sensorStatus == IDistanceSensor::Status::Ok;
+    m_logger.printf("VL53L1X: init=%s\r\n", IDistanceSensor::toString(sensorStatus));
 }
 
 void App::logBootBanner(ICanBus::Status canStatus) const
@@ -47,6 +52,11 @@ void App::run()
     processReceivedMessages();
 
     const uint32_t now = HAL_GetTick();
+    if (m_distanceActive && (now - m_lastDistancePollTick) >= DISTANCE_POLL_PERIOD_MS)
+    {
+        m_lastDistancePollTick = now;
+        pollDistance();
+    }
     if ((now - m_lastHeartbeatTick) >= HEARTBEAT_PERIOD_MS)
     {
         m_lastHeartbeatTick = now;
@@ -57,6 +67,37 @@ void App::run()
         m_lastLedMeasureTick = now;
         logLedMeasurement();
     }
+}
+
+void App::pollDistance()
+{
+    IDistanceSensor::Measurement measurement;
+    const auto status = m_distanceSensor.poll(measurement);
+    if (status == IDistanceSensor::Status::NotReady)
+        return;
+    if (status != IDistanceSensor::Status::Ok)
+    {
+        if (status == IDistanceSensor::Status::Disabled)
+        {
+            m_distanceActive = false;
+            m_logger.printf("VL53L1X: disabled\r\n");
+            return;
+        }
+        if (!m_distanceRecovering)
+            m_logger.printf("VL53L1X: retrying error=%s\r\n", IDistanceSensor::toString(status));
+        m_distanceRecovering = true;
+        return;
+    }
+    if (m_distanceRecovering)
+    {
+        m_logger.printf("VL53L1X: measurements resumed\r\n");
+        m_distanceRecovering = false;
+    }
+    m_logger.printf("VL53L1X: distance=%u mm status=%u valid=%u tick=%lu ms\r\n",
+        static_cast<unsigned>(measurement.distanceMm),
+        static_cast<unsigned>(measurement.rangeStatus),
+        static_cast<unsigned>(measurement.valid),
+        static_cast<unsigned long>(measurement.timestampMs));
 }
 
 void App::onTick(const TIM_HandleTypeDef* htim)

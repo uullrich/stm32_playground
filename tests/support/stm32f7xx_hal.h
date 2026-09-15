@@ -25,6 +25,9 @@ extern "C"
     // Opaque type - production code only handles a pointer to it.
     typedef struct UART_HandleTypeDef UART_HandleTypeDef;
 
+    uint32_t HAL_GetTick(void);
+    void HAL_Delay(uint32_t durationMs);
+
     HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef* huart, const uint8_t* pData,
                                         uint16_t Size, uint32_t Timeout);
 
