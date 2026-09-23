@@ -13,15 +13,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        v1.15.2
-)
-# Force shared CRT off / static gtest libs - simplest portable default
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+add_subdirectory(deps)
 
 enable_testing()
 
@@ -33,12 +25,21 @@ add_executable(unit_tests
     drivers/can_bus/CanMessageTest.cpp
     drivers/logger/ILoggerTest.cpp
     devices/distance_sensor/Vl53l1xTest.cpp
+    protocols/custom_can/CustomCanTest.cpp
+    io/CanDispatcherTest.cpp
 
     # --- production sources under test ---
     ${SRC_DIR}/drivers/logger/ILogger.cpp
     ${SRC_DIR}/devices/distance_sensor/IDistanceSensor.cpp
     ${SRC_DIR}/devices/distance_sensor/Vl53l1x.cpp
     ${SRC_DIR}/devices/distance_sensor/Vl53l1xPlatform.cpp
+    ${SRC_DIR}/protocols/custom_can/CustomCan.cpp
+    ${SRC_DIR}/io/CanDispatcher.cpp
+    ${SRC_DIR}/io/IoRepository.cpp
+    ${SRC_DIR}/io/VirtualDigitalOutput.cpp
+    ${SRC_DIR}/io/VirtualDigitalInput.cpp
+    ${SRC_DIR}/io/VirtualPwmOutput.cpp
+    ${SRC_DIR}/io/VirtualAdcInput.cpp
     ${SRC_DIR}/../third_party/vl53l1x_uld/VL53L1X_api.c
 
     # --- host stubs ---
@@ -54,6 +55,12 @@ target_include_directories(unit_tests PRIVATE
     ${SRC_DIR}/drivers/logger
     ${SRC_DIR}/drivers/i2c_bus
     ${SRC_DIR}/devices/distance_sensor
+    ${SRC_DIR}/protocols/custom_can
+    ${SRC_DIR}/io
+    ${SRC_DIR}/drivers/digital_output
+    ${SRC_DIR}/drivers/digital_input
+    ${SRC_DIR}/drivers/pwm_output
+    ${SRC_DIR}/drivers/adc_input
     ${SRC_DIR}/../third_party/vl53l1x_uld
 )
 

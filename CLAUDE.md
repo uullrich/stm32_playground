@@ -14,7 +14,7 @@ cmake --build --preset Debug
 # Output: build/Debug/stm32_playground.elf
 
 # Unit tests (system C++20 compiler)
-cmake -S tests -B build/tests
+cmake -S tests -B build/tests -G Ninja
 cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
 ```
@@ -32,11 +32,14 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 
 ## Architecture rules
 
-- **ISR / main-loop split**: ISRs only push to `RingBuffer`. All heavy work (UART, formatting) runs in `App::run()`.
-- **HAL callbacks defined exactly once**: in `app_facade.cpp` (EXTI, TIM) or `can_bus.cpp` (CAN). Never add a second definition.
-- **CAN TX always queued**: call `CanBus::send()`, never write to mailboxes directly.
-- **Singletons via `std::optional`**: `g_logger` and `g_app` in `app_facade.cpp` use `emplace()` (placement-new into BSS). Do not add more globals, only if there is no other possibility.
-- **C ABI bridge**: `app_facade.cpp` is the only file that both includes C++ headers and has `extern "C"` functions called from `main.c`.
+- **ISR / main-loop split**: ISRs only set `std::atomic` flags/counters or push to `RingBuffer`. All real work (LED animation, button actions, UART, formatting, CAN dispatch) runs in `App::run()`, which polls those flags (`Button::consumePress()`, pending TIM6 ticks).
+- **HAL callbacks defined exactly once**: in `AppFacade.cpp` (EXTI, TIM) or `CanBus.cpp` (CAN). Never add a second definition.
+- **CAN TX always queued**: call `CanBus::send()`, never write to mailboxes directly. `send()` masks the TX-mailbox-empty IRQ while touching the TX queue.
+- **Singletons via `std::optional`**: `g_logger` and `g_app` in `AppFacade.cpp` use `emplace()` (placement-new into BSS). Do not add more globals, only if there is no other possibility.
+- **C ABI bridge**: `extern "C"` functions exist only in `AppFacade.cpp` (`app_init`/`app_run` called from `main.c`, EXTI/TIM callbacks), `CanBus.cpp` (HAL CAN callbacks) and `Vl53l1xPlatform.cpp` (ST ULD platform functions). `hi2c1` is taken via `extern` in `AppFacade.cpp` because the `app_init()` call in `main.c` predates I2C1.
+- **LED ownership**: LD1–LD3 are animated by `App`. A successful CAN Set on one of them (`CanDispatcher` → `IIoWriteListener` → `IoConnector`) stops the animation; the USER button restarts it.
+- **Build target**: all `src/` code is compiled in the `playground_app` OBJECT library with `-Wextra -Wconversion -Wsign-conversion -Wshadow -Wpedantic`. It must stay OBJECT (not STATIC), otherwise the linker may drop the strong HAL callback overrides. Keep `src/` warning-free.
+- **Dependencies (tests)**: GoogleTest is declared only in `tests/deps/googletest/CMakeLists.txt`; `tests/CMakeLists.txt` only does `add_subdirectory(deps)`.
 
 ## Coding style
 
@@ -72,7 +75,7 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 
 ## Test scope
 
-Tested on host: `RingBuffer`, `CanMessage`, `ILogger::printf` formatting (via `CapturingLogger` test double).
+Tested on host: `RingBuffer`, `CanMessage`, `ILogger::printf` formatting (via `MockLogger`), `Vl53l1x` (via `SimulatedVl53l1xBus`), `CustomCan` codec, `CanDispatcher` (real `IoRepository`/`Virtual*` IOs over gmock driver mocks in `tests/support/Mock*.h`).
 Not unit-tested (verified on hardware only): `DigitalLed`, `PwmLed`, `Button`, `UartLogger`, `CanBus`, `AdcInput`.
 Do not add host tests for the thin HAL wrappers.
 

@@ -10,6 +10,7 @@ class IButton
   public:
     virtual ~IButton() = default;
     virtual void handleExti(uint16_t triggeredPin) = 0;
+    [[nodiscard]] virtual bool consumePress() = 0;
 };
 
 }

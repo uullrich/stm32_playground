@@ -1,6 +1,9 @@
 # Build output
 build/
 
+# Fetched dependency sources
+tests/deps/*/*-src/
+
 # CubeMX backup files
 *.bak
 

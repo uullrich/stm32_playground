@@ -13,7 +13,7 @@ class ILogger
     virtual void write(std::string_view text) const = 0;
 
     // Template Method: printf handles formatting once here; subclasses only implement write().
-    void printf(const char* fmt, ...) const __attribute__((format(printf, 2, 3)));
+    [[gnu::format(printf, 2, 3)]] void printf(const char* fmt, ...) const;
 };
 
 }

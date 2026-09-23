@@ -1,6 +1,8 @@
 #include "IoConnector.h"
 #include "IoRepositoryBuilder.h"
 
+#include <utility>
+
 namespace uullrich::playground
 {
 
@@ -20,6 +22,17 @@ IoConnector::IoConnector(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutpu
 IIoRepository& IoConnector::repository()
 {
     return m_repository;
+}
+
+void IoConnector::onWritten(const IVirtualIo& io)
+{
+    if (&io == &m_ld1 || &io == &m_ld2 || &io == &m_ld3)
+        m_animatedOutputOverridden = true;
+}
+
+bool IoConnector::consumeAnimatedOutputOverride()
+{
+    return std::exchange(m_animatedOutputOverridden, false);
 }
 
 }

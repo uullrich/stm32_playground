@@ -46,14 +46,14 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
-# Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+# Hand-written application code. OBJECT (not STATIC) so the strong HAL weak-callback
+# overrides and the VL53L1X platform functions are always linked into the executable.
+add_library(playground_app OBJECT
     src/app/App.cpp
     src/drivers/i2c_bus/I2cBus.cpp
     src/devices/distance_sensor/IDistanceSensor.cpp
     src/devices/distance_sensor/Vl53l1x.cpp
     src/devices/distance_sensor/Vl53l1xPlatform.cpp
-    third_party/vl53l1x_uld/VL53L1X_api.c
     src/app/AppFacade.cpp
     src/drivers/adc_input/AdcInput.cpp
     src/drivers/can_bus/CanBus.cpp
@@ -77,12 +77,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/io/CanDispatcher.cpp
 )
 
-# Add include paths
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+target_include_directories(playground_app PUBLIC
     src/app
     src/drivers/i2c_bus
     src/devices/distance_sensor
-    third_party/vl53l1x_uld
     src/drivers/adc_input
     src/drivers/can_bus
     src/drivers/digital_output
@@ -96,6 +94,23 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/io
 )
 
+target_include_directories(playground_app SYSTEM PUBLIC
+    third_party/vl53l1x_uld
+)
+
+target_link_libraries(playground_app PUBLIC
+    stm32cubemx
+)
+
+target_compile_options(playground_app PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-Wextra -Wconversion -Wsign-conversion -Wshadow -Wpedantic>
+)
+
+# Third-party sources stay on the executable, outside playground_app's warning scope
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    third_party/vl53l1x_uld/VL53L1X_api.c
+)
+
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
@@ -107,6 +122,7 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
+    playground_app
 
     # Add user defined libraries
 )

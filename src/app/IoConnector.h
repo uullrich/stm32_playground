@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IIoRepository.h"
+#include "IIoWriteListener.h"
 #include "IoRepository.h"
 #include "VirtualDigitalOutput.h"
 #include "VirtualPwmOutput.h"
@@ -12,13 +13,16 @@
 namespace uullrich::playground
 {
 
-class IoConnector
+class IoConnector : public IIoWriteListener
 {
   public:
     IoConnector(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6, IPwmOutput& ld1,
             IAdcInput& adcPoti, IAdcInput& adcAnode);
 
     [[nodiscard]] IIoRepository& repository();
+
+    void onWritten(const IVirtualIo& io) override;
+    [[nodiscard]] bool consumeAnimatedOutputOverride();
 
   private:
     VirtualDigitalOutput m_ld2;
@@ -28,6 +32,7 @@ class IoConnector
     VirtualAdcInput m_adcPoti;
     VirtualAdcInput m_adcAnode;
     IoRepository m_repository{};
+    bool m_animatedOutputOverridden{false};
 };
 
 }

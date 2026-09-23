@@ -15,6 +15,9 @@
 #include "Vl53l1x.h"
 #include "stm32f7xx_hal.h"
 
+#include <atomic>
+#include <cstdint>
+
 namespace uullrich::playground
 {
 
@@ -36,6 +39,9 @@ class App final
   private:
     void onButtonPressed();
     void onD8ButtonPressed();
+    void pollButtons();
+    void pollAnimatedOutputOverride();
+    void processPendingTicks();
     void animateLeds();
     void sendHeartbeat();
     void processReceivedMessages();
@@ -47,7 +53,9 @@ class App final
 
     static constexpr CustomCanNodeId NODE_ID = 1;
 
-    static constexpr int32_t FADE_STEP = 1;
+    static constexpr int16_t FADE_STEP = 1;
+    static constexpr int16_t MAX_BRIGHTNESS_PERCENT = 100;
+    static constexpr uint32_t MAX_TICKS_PER_RUN = 10;
     static constexpr uint32_t LD2_TICK_DIVIDER = 3;
     static constexpr uint32_t LD3_TICK_DIVIDER = 7;
     static constexpr uint32_t BUTTON_DEBOUNCE_MS = 150;
@@ -78,11 +86,16 @@ class App final
 
     TIM_HandleTypeDef& m_tickTimer;
     bool m_ledsActive{true};
+    std::atomic<uint32_t> m_pendingTicks{0};
+    uint32_t m_led2TickCounter{0};
+    uint32_t m_led3TickCounter{0};
+    int16_t m_brightnessPercent{0};
+    int8_t m_fadeDirection{1};
     uint32_t m_lastHeartbeatTick{0};
     uint32_t m_lastLedMeasureTick{0};
     uint32_t m_lastDistancePollTick{0};
     bool m_distanceActive{false};
-    bool m_distanceRecovering{false};
+    IDistanceSensor::Status m_lastDistanceError{IDistanceSensor::Status::Ok};
 };
 
 }

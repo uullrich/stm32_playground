@@ -4,6 +4,7 @@
 #include "stm32f7xx_hal.h"
 
 #include <cstdint>
+#include <optional>
 
 namespace uullrich::playground
 {
@@ -12,7 +13,7 @@ class AdcInput : public IAdcInput
 {
 public:
     AdcInput(ADC_HandleTypeDef& hadc, uint32_t channel);
-    [[nodiscard]] uint16_t readMillivolts() override;
+    [[nodiscard]] std::optional<uint16_t> readMillivolts() override;
 
 private:
     static constexpr uint32_t VREF_MV = 3300;

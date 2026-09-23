@@ -6,6 +6,20 @@ extern "C"
 #include "VL53L1X_api.h"
 }
 
+namespace
+{
+constexpr int8_t DRIVER_OK = 0;
+constexpr uint16_t EXPECTED_SENSOR_ID = 0xEACC;
+constexpr uint16_t PAD_I2C_HV_CONFIG_REGISTER = 0x002E;
+constexpr uint16_t PAD_I2C_HV_EXTSUP_CONFIG_REGISTER = 0x002F;
+constexpr uint8_t PAD_USE_AVDD = 0x01;
+constexpr uint16_t DISTANCE_MODE_LONG = 2;
+constexpr uint16_t TIMING_BUDGET_MS = 50;
+constexpr uint32_t INTER_MEASUREMENT_PERIOD_MS = 100;
+constexpr int32_t BOOT_POLL_INTERVAL_MS = 1;
+constexpr uint8_t RANGE_STATUS_VALID = 0;
+}
+
 namespace uullrich::playground
 {
 
@@ -19,7 +33,7 @@ IDistanceSensor::Status Vl53l1x::driverStatus(int8_t result) const
         return Status::Timeout;
     if (m_platform.status() != II2cBus::Status::Ok)
         return Status::BusError;
-    return result == 0 ? Status::Ok : Status::DriverError;
+    return result == DRIVER_OK ? Status::Ok : Status::DriverError;
 }
 
 IDistanceSensor::Status Vl53l1x::disable(Status status)
@@ -44,7 +58,7 @@ IDistanceSensor::Status Vl53l1x::recover()
         if (elapsed < RECOVERY_BACKOFF_MS)
             return Status::NotReady;
         m_platform.beginOperation(POLL_TIMEOUT_MS);
-        const auto status = driverStatus(VL53L1X_StopRanging(ADDRESS));
+        const auto status = driverStatus(VL53L1X_StopRanging(VL53L1X_I2C_ADDRESS));
         if (status != Status::Ok)
             return scheduleRecovery(status);
         // StopRanging lets an in-flight measurement finish before stopping.
@@ -55,16 +69,63 @@ IDistanceSensor::Status Vl53l1x::recover()
 
     if (elapsed < STOP_SETTLE_MS)
         return Status::NotReady;
-    m_platform.beginOperation(POLL_TIMEOUT_MS);
-    auto status = driverStatus(VL53L1X_ClearInterrupt(ADDRESS));
-    if (status != Status::Ok)
-        return scheduleRecovery(status);
-    status = driverStatus(VL53L1X_StartRanging(ADDRESS));
+    // A brown-out resets the sensor to its defaults while I2C keeps working, so restart ranging
+    // alone would leave it unconfigured and silent.
+    m_platform.beginOperation(INIT_TIMEOUT_MS);
+    const auto status = configure();
     if (status != Status::Ok)
         return scheduleRecovery(status);
     m_recoveryState = RecoveryState::None;
     m_lastMeasurementMs = HAL_GetTick();
     return Status::NotReady;
+}
+
+IDistanceSensor::Status Vl53l1x::configure()
+{
+    uint8_t booted = 0;
+    while (booted == 0)
+    {
+        const auto status = driverStatus(VL53L1X_BootState(VL53L1X_I2C_ADDRESS, &booted));
+        if (status != Status::Ok)
+            return status;
+        if (booted == 0)
+        {
+            const auto waitStatus = driverStatus(VL53L1_WaitMs(VL53L1X_I2C_ADDRESS, BOOT_POLL_INTERVAL_MS));
+            if (waitStatus != Status::Ok)
+                return waitStatus;
+        }
+    }
+
+    uint16_t sensorId = 0;
+    auto status = driverStatus(VL53L1X_GetSensorId(VL53L1X_I2C_ADDRESS, &sensorId));
+    if (status != Status::Ok)
+        return status;
+    if (sensorId != EXPECTED_SENSOR_ID)
+        return Status::WrongDevice;
+
+    status = driverStatus(VL53L1X_SensorInit(VL53L1X_I2C_ADDRESS));
+    if (status != Status::Ok)
+        return status;
+    // The CQRobot breakout uses the sensor's AVDD I/O domain, not 1.8 V.
+    status = driverStatus(
+        VL53L1_WrByte(VL53L1X_I2C_ADDRESS, PAD_I2C_HV_CONFIG_REGISTER, PAD_USE_AVDD));
+    if (status != Status::Ok)
+        return status;
+    status = driverStatus(
+        VL53L1_WrByte(VL53L1X_I2C_ADDRESS, PAD_I2C_HV_EXTSUP_CONFIG_REGISTER, PAD_USE_AVDD));
+    if (status != Status::Ok)
+        return status;
+    status = driverStatus(VL53L1X_SetDistanceMode(VL53L1X_I2C_ADDRESS, DISTANCE_MODE_LONG));
+    if (status != Status::Ok)
+        return status;
+    status = driverStatus(VL53L1X_SetTimingBudgetInMs(VL53L1X_I2C_ADDRESS, TIMING_BUDGET_MS));
+    if (status != Status::Ok)
+        return status;
+    status = driverStatus(
+        VL53L1X_SetInterMeasurementInMs(VL53L1X_I2C_ADDRESS, INTER_MEASUREMENT_PERIOD_MS));
+    if (status != Status::Ok)
+        return status;
+    return driverStatus(VL53L1X_StartRanging(VL53L1X_I2C_ADDRESS));
 }
 
 IDistanceSensor::Status Vl53l1x::init()
@@ -74,48 +135,7 @@ IDistanceSensor::Status Vl53l1x::init()
     if (!m_platform.bind())
         return Status::InUse;
     m_platform.beginOperation(INIT_TIMEOUT_MS);
-
-    uint8_t booted = 0;
-    while (booted == 0)
-    {
-        const auto status = driverStatus(VL53L1X_BootState(ADDRESS, &booted));
-        if (status != Status::Ok)
-            return disable(status);
-        if (booted == 0)
-        {
-            const auto waitStatus = driverStatus(VL53L1_WaitMs(ADDRESS, 1));
-            if (waitStatus != Status::Ok)
-                return disable(waitStatus);
-        }
-    }
-
-    uint16_t sensorId = 0;
-    auto status = driverStatus(VL53L1X_GetSensorId(ADDRESS, &sensorId));
-    if (status != Status::Ok)
-        return disable(status);
-    if (sensorId != 0xEACC)
-        return disable(Status::WrongDevice);
-
-    status = driverStatus(VL53L1X_SensorInit(ADDRESS));
-    if (status != Status::Ok)
-        return disable(status);
-    // The CQRobot breakout uses the sensor's AVDD I/O domain, not 1.8 V.
-    status = driverStatus(VL53L1_WrByte(ADDRESS, 0x002E, 0x01));
-    if (status != Status::Ok)
-        return disable(status);
-    status = driverStatus(VL53L1_WrByte(ADDRESS, 0x002F, 0x01));
-    if (status != Status::Ok)
-        return disable(status);
-    status = driverStatus(VL53L1X_SetDistanceMode(ADDRESS, 2));
-    if (status != Status::Ok)
-        return disable(status);
-    status = driverStatus(VL53L1X_SetTimingBudgetInMs(ADDRESS, 50));
-    if (status != Status::Ok)
-        return disable(status);
-    status = driverStatus(VL53L1X_SetInterMeasurementInMs(ADDRESS, 100));
-    if (status != Status::Ok)
-        return disable(status);
-    status = driverStatus(VL53L1X_StartRanging(ADDRESS));
+    const auto status = configure();
     if (status != Status::Ok)
         return disable(status);
 
@@ -134,7 +154,7 @@ IDistanceSensor::Status Vl53l1x::poll(Measurement& measurement)
         return recover();
     m_platform.beginOperation(POLL_TIMEOUT_MS);
     uint8_t ready = 0;
-    auto status = driverStatus(VL53L1X_CheckForDataReady(ADDRESS, &ready));
+    auto status = driverStatus(VL53L1X_CheckForDataReady(VL53L1X_I2C_ADDRESS, &ready));
     if (status != Status::Ok)
         return scheduleRecovery(status);
     if (ready == 0)
@@ -145,15 +165,15 @@ IDistanceSensor::Status Vl53l1x::poll(Measurement& measurement)
     }
 
     VL53L1X_Result_t result{};
-    status = driverStatus(VL53L1X_GetResult(ADDRESS, &result));
+    status = driverStatus(VL53L1X_GetResult(VL53L1X_I2C_ADDRESS, &result));
     if (status != Status::Ok)
         return scheduleRecovery(status);
-    status = driverStatus(VL53L1X_ClearInterrupt(ADDRESS));
+    status = driverStatus(VL53L1X_ClearInterrupt(VL53L1X_I2C_ADDRESS));
     if (status != Status::Ok)
         return scheduleRecovery(status);
 
     m_lastMeasurementMs = HAL_GetTick();
-    measurement = {result.Distance, result.Status, m_lastMeasurementMs, result.Status == 0};
+    measurement = {result.Distance, result.Status, m_lastMeasurementMs, result.Status == RANGE_STATUS_VALID};
     return Status::Ok;
 }
 

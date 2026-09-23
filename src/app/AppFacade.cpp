@@ -11,6 +11,7 @@ std::optional<uullrich::playground::App> g_app;
 
 extern "C"
 {
+    // app_init() call in main.c and its C signature predate I2C1, so the CubeMX global is used directly.
     extern I2C_HandleTypeDef hi2c1;
 
     void app_init(CAN_HandleTypeDef* hcan, TIM_HandleTypeDef* htimPwm, TIM_HandleTypeDef* htimTick,

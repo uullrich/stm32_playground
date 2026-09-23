@@ -5,6 +5,7 @@
 #include <bit>
 #include <concepts>
 #include <cstdint>
+#include <optional>
 
 namespace uullrich::playground
 {
@@ -25,15 +26,15 @@ class RingBuffer
         return true;
     }
 
-    [[nodiscard]] bool pop(T& out)
+    [[nodiscard]] std::optional<T> pop()
     {
         const auto tail = m_tail.load(std::memory_order_relaxed);
         const auto head = m_head.load(std::memory_order_acquire);
         if (head == tail)
-            return false;
-        out = m_buffer[tail & MASK];
+            return std::nullopt;
+        std::optional<T> item{m_buffer[tail & MASK]};
         m_tail.store(tail + 1, std::memory_order_release);
-        return true;
+        return item;
     }
 
     [[nodiscard]] bool isEmpty() const

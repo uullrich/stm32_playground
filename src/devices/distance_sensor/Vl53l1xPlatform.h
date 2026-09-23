@@ -5,6 +5,9 @@
 namespace uullrich::playground
 {
 
+// 7-bit form; the 8-bit write address would be 0x52.
+constexpr uint8_t VL53L1X_I2C_ADDRESS = 0x29;
+
 class Vl53l1xPlatform final
 {
   public:

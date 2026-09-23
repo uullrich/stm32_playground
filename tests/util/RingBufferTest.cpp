@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <optional>
 
 namespace uullrich::playground::test
 {
@@ -36,26 +37,24 @@ TEST_F(RingBufferTest, PopReturnsThePushedItem)
 {
     ASSERT_TRUE(m_buffer.push(42));
 
-    int out = 0;
-    EXPECT_TRUE(m_buffer.pop(out));
-    EXPECT_EQ(out, 42);
+    const auto item = m_buffer.pop();
+    ASSERT_TRUE(item);
+    EXPECT_EQ(*item, 42);
 }
 
 TEST_F(RingBufferTest, BecomesEmptyAfterPoppingOnlyItem)
 {
     ASSERT_TRUE(m_buffer.push(1));
-    int out = 0;
-    ASSERT_TRUE(m_buffer.pop(out));
+    ASSERT_TRUE(m_buffer.pop());
 
     EXPECT_TRUE(m_buffer.isEmpty());
     EXPECT_EQ(m_buffer.count(), 0u);
 }
 
-TEST_F(RingBufferTest, PopOnEmptyReturnsFalseAndDoesNotMutateOutput)
+TEST_F(RingBufferTest, PopOnEmptyReturnsNullopt)
 {
-    int out = 0xDEAD;
-    EXPECT_FALSE(m_buffer.pop(out));
-    EXPECT_EQ(out, 0xDEAD);
+    EXPECT_EQ(m_buffer.pop(), std::nullopt);
+    EXPECT_TRUE(m_buffer.isEmpty());
 }
 
 TEST_F(RingBufferTest, PushFailsOnceCapacityIsReached)
@@ -76,13 +75,9 @@ TEST_F(RingBufferTest, PreservesFifoOrder)
     ASSERT_TRUE(m_buffer.push(2));
     ASSERT_TRUE(m_buffer.push(3));
 
-    int out = 0;
-    ASSERT_TRUE(m_buffer.pop(out));
-    EXPECT_EQ(out, 1);
-    ASSERT_TRUE(m_buffer.pop(out));
-    EXPECT_EQ(out, 2);
-    ASSERT_TRUE(m_buffer.pop(out));
-    EXPECT_EQ(out, 3);
+    EXPECT_EQ(m_buffer.pop(), 1);
+    EXPECT_EQ(m_buffer.pop(), 2);
+    EXPECT_EQ(m_buffer.pop(), 3);
 }
 
 TEST_F(RingBufferTest, SurvivesManyPushPopCyclesWrappingTheIndex)
@@ -91,9 +86,7 @@ TEST_F(RingBufferTest, SurvivesManyPushPopCyclesWrappingTheIndex)
     for (int i = 0; i < ITERATIONS; ++i)
     {
         ASSERT_TRUE(m_buffer.push(i));
-        int out = -1;
-        ASSERT_TRUE(m_buffer.pop(out));
-        EXPECT_EQ(out, i);
+        EXPECT_EQ(m_buffer.pop(), i);
     }
     EXPECT_TRUE(m_buffer.isEmpty());
 }
@@ -108,9 +101,7 @@ TEST_F(RingBufferTest, FillsAndDrainsRepeatedlyPreservingFifoEachRound)
         }
         for (int i = 0; i < static_cast<int>(CAPACITY); ++i)
         {
-            int out = 0;
-            ASSERT_TRUE(m_buffer.pop(out));
-            EXPECT_EQ(out, round * 10 + i);
+            EXPECT_EQ(m_buffer.pop(), round * 10 + i);
         }
     }
 }
@@ -127,10 +118,10 @@ TEST(RingBufferElementTypeTest, AcceptsStructElements)
     ASSERT_TRUE(rb.push({1, 2}));
     ASSERT_TRUE(rb.push({3, 4}));
 
-    Point out{};
-    ASSERT_TRUE(rb.pop(out));
-    EXPECT_EQ(out.x, 1);
-    EXPECT_EQ(out.y, 2);
+    const auto point = rb.pop();
+    ASSERT_TRUE(point);
+    EXPECT_EQ(point->x, 1);
+    EXPECT_EQ(point->y, 2);
 }
 
 } // namespace uullrich::playground::test

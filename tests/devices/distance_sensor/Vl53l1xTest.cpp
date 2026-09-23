@@ -171,6 +171,42 @@ TEST(Vl53l1xTest, MissingMeasurementsRecoverAcrossTickRollover)
     EXPECT_EQ(measurement.distanceMm, 600);
 }
 
+TEST(Vl53l1xTest, SensorResetDuringRangingIsFullyReconfigured)
+{
+    SimulatedVl53l1xBus bus;
+    Vl53l1x sensor{bus};
+    ASSERT_EQ(sensor.init(), Status::Ok);
+    bus.registers[0x2E] = 0;
+    bus.registers[0x2F] = 0;
+    bus.registers[0x4B] = 0;
+    bus.registers[0x5E] = 0;
+    bus.registers[0x5F] = 0;
+    bus.registers[0x6C] = 0;
+    bus.registers[0x6D] = 0;
+    bus.registers[0x6E] = 0;
+    bus.registers[0x6F] = 0;
+    bus.registers[0x87] = 0;
+    bus.ready = false;
+    IDistanceSensor::Measurement measurement;
+    HAL_Delay(500);
+    ASSERT_EQ(sensor.poll(measurement), Status::MeasurementTimeout);
+    HAL_Delay(1000);
+    EXPECT_EQ(sensor.poll(measurement), Status::NotReady);
+    HAL_Delay(100);
+    EXPECT_EQ(sensor.poll(measurement), Status::NotReady);
+    EXPECT_EQ(bus.registers[0x2E], 1);
+    EXPECT_EQ(bus.registers[0x2F], 1);
+    EXPECT_EQ(bus.registers[0x4B], 0x0A);
+    EXPECT_EQ(bus.word(0x5E), 0x00AD);
+    EXPECT_EQ(bus.word(0x61), 0x00C6);
+    EXPECT_EQ(bus.word(0x6E), 27520);
+    EXPECT_EQ(bus.registers[0x87], 0x40);
+    bus.sample(320, 9);
+    EXPECT_EQ(sensor.poll(measurement), Status::Ok);
+    EXPECT_TRUE(measurement.valid);
+    EXPECT_EQ(measurement.distanceMm, 320);
+}
+
 TEST(Vl53l1xTest, BusTimeoutIsDistinctFromMissingMeasurementAndRecovers)
 {
     SimulatedVl53l1xBus bus;

@@ -9,17 +9,29 @@ AdcInput::AdcInput(ADC_HandleTypeDef& hadc, uint32_t channel)
 {
 }
 
-uint16_t AdcInput::readMillivolts()
+std::optional<uint16_t> AdcInput::readMillivolts()
 {
     // Reconfigured every call because multiple AdcInput instances share the same ADC handle.
     ADC_ChannelConfTypeDef channelConfiguration{};
     channelConfiguration.Channel = m_channel;
     channelConfiguration.Rank = ADC_REGULAR_RANK_1;
     channelConfiguration.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-    HAL_ADC_ConfigChannel(&m_hadc, &channelConfiguration);
+    if (HAL_ADC_ConfigChannel(&m_hadc, &channelConfiguration) != HAL_OK)
+    {
+        return std::nullopt;
+    }
 
-    HAL_ADC_Start(&m_hadc);
-    HAL_ADC_PollForConversion(&m_hadc, POLL_TIMEOUT_MS);
+    if (HAL_ADC_Start(&m_hadc) != HAL_OK)
+    {
+        return std::nullopt;
+    }
+
+    if (HAL_ADC_PollForConversion(&m_hadc, POLL_TIMEOUT_MS) != HAL_OK)
+    {
+        HAL_ADC_Stop(&m_hadc);
+        return std::nullopt;
+    }
+
     const uint32_t raw = HAL_ADC_GetValue(&m_hadc);
     HAL_ADC_Stop(&m_hadc);
 

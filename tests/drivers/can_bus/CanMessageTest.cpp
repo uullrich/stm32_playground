@@ -59,4 +59,4 @@ TEST(CanMessageTest, CopyDuplicatesAllFields)
     EXPECT_EQ(copy.data, src.data);
 }
 
-} // namespace uullrich::playground::test
+}

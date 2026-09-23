@@ -22,7 +22,9 @@ uint8_t VirtualPwmOutput::ioIndex() const
 IoStatus VirtualPwmOutput::read(uint32_t& value) const
 {
     const uint32_t period = m_output.period();
-    value = (period > 0) ? (m_output.getPulse() * PWM_VALUE_MAX / period) : 0u;
+    value = (period > 0) ? static_cast<uint32_t>(static_cast<uint64_t>(m_output.getPulse()) *
+                                                 PWM_VALUE_MAX / period)
+                         : 0u;
     return IoStatus::Ok;
 }
 
@@ -30,7 +32,8 @@ IoStatus VirtualPwmOutput::write(uint32_t value)
 {
     if (value > PWM_VALUE_MAX)
         return IoStatus::ValueOutOfRange;
-    m_output.setPulse(value * m_output.period() / PWM_VALUE_MAX);
+    m_output.setPulse(
+        static_cast<uint32_t>(static_cast<uint64_t>(value) * m_output.period() / PWM_VALUE_MAX));
     return IoStatus::Ok;
 }
 

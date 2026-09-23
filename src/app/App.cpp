@@ -2,7 +2,9 @@
 
 #include "main.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <optional>
 #include <tuple>
 
 namespace uullrich::playground
@@ -12,14 +14,14 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
          const ILogger& logger, ADC_HandleTypeDef& hadc, I2C_HandleTypeDef& hi2c)
     : m_ld2Output{*GPIOB, LD2_Pin},
       m_ld3Output{*GPIOB, LD3_Pin},
-      m_d6Output{*GPIOE, GPIO_PIN_9},
-      m_ld1Output{htimPwm, TIM_CHANNEL_3, 999},
+      m_d6Output{*D6_LED_GPIO_Port, D6_LED_Pin},
+      m_ld1Output{htimPwm, TIM_CHANNEL_3, htimPwm.Init.Period},
       m_led2{m_ld2Output},
       m_led3{m_ld3Output},
       m_d6Led{m_d6Output},
       m_led1{m_ld1Output},
-      m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS, [this]() { onButtonPressed(); }},
-      m_d8Button{GPIO_PIN_12, BUTTON_DEBOUNCE_MS, [this]() { onD8ButtonPressed(); }},
+      m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS},
+      m_d8Button{D8_Button_Pin, BUTTON_DEBOUNCE_MS},
       m_canBus{hcan},
       m_logger{logger},
       m_adcAfterPoti{hadc, ADC_CHANNEL_3},
@@ -27,7 +29,7 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_i2cBus{hi2c},
       m_distanceSensor{m_i2cBus},
       m_ioConnector{m_ld2Output, m_ld3Output, m_d6Output, m_ld1Output, m_adcAfterPoti, m_adcLedAnode},
-      m_canDispatcher{m_canBus, m_ioConnector.repository(), NODE_ID},
+      m_canDispatcher{m_canBus, m_ioConnector.repository(), m_ioConnector, NODE_ID},
       m_tickTimer{htimTick}
 {
 }
@@ -50,6 +52,9 @@ void App::logBootBanner(ICanBus::Status canStatus) const
 void App::run()
 {
     processReceivedMessages();
+    pollAnimatedOutputOverride();
+    pollButtons();
+    processPendingTicks();
 
     const uint32_t now = HAL_GetTick();
     if (m_distanceActive && (now - m_lastDistancePollTick) >= DISTANCE_POLL_PERIOD_MS)
@@ -83,15 +88,15 @@ void App::pollDistance()
             m_logger.printf("VL53L1X: disabled\r\n");
             return;
         }
-        if (!m_distanceRecovering)
+        if (status != m_lastDistanceError)
             m_logger.printf("VL53L1X: retrying error=%s\r\n", IDistanceSensor::toString(status));
-        m_distanceRecovering = true;
+        m_lastDistanceError = status;
         return;
     }
-    if (m_distanceRecovering)
+    if (m_lastDistanceError != IDistanceSensor::Status::Ok)
     {
         m_logger.printf("VL53L1X: measurements resumed\r\n");
-        m_distanceRecovering = false;
+        m_lastDistanceError = IDistanceSensor::Status::Ok;
     }
     m_logger.printf("VL53L1X: distance=%u mm status=%u valid=%u tick=%lu ms\r\n",
         static_cast<unsigned>(measurement.distanceMm),
@@ -102,10 +107,31 @@ void App::pollDistance()
 
 void App::onTick(const TIM_HandleTypeDef* htim)
 {
-    if (htim == &m_tickTimer && m_ledsActive)
-    {
+    if (htim == &m_tickTimer)
+        m_pendingTicks.fetch_add(1);
+}
+
+void App::pollButtons()
+{
+    if (m_button.consumePress())
+        onButtonPressed();
+    if (m_d8Button.consumePress())
+        onD8ButtonPressed();
+}
+
+void App::pollAnimatedOutputOverride()
+{
+    if (m_ioConnector.consumeAnimatedOutputOverride())
+        m_ledsActive = false;
+}
+
+void App::processPendingTicks()
+{
+    const uint32_t pendingTicks = std::min(m_pendingTicks.exchange(0), MAX_TICKS_PER_RUN);
+    if (!m_ledsActive)
+        return;
+    for (uint32_t tick = 0; tick < pendingTicks; ++tick)
         animateLeds();
-    }
 }
 
 void App::onExti(uint16_t pin)
@@ -132,41 +158,44 @@ void App::onD8ButtonPressed()
 
 void App::animateLeds()
 {
-    static uint32_t led2Counter = 0;
-    static uint32_t led3Counter = 0;
-    static uint8_t brightness = 0;
-    static uint8_t step = FADE_STEP;
-
-    if (++led2Counter >= LD2_TICK_DIVIDER)
+    if (++m_led2TickCounter >= LD2_TICK_DIVIDER)
     {
-        led2Counter = 0;
+        m_led2TickCounter = 0;
         m_led2.toggle();
     }
-    if (++led3Counter >= LD3_TICK_DIVIDER)
+    if (++m_led3TickCounter >= LD3_TICK_DIVIDER)
     {
-        led3Counter = 0;
+        m_led3TickCounter = 0;
         m_led3.toggle();
     }
 
-    brightness += step;
-    if (brightness >= 100)
+    m_brightnessPercent = static_cast<int16_t>(m_brightnessPercent + m_fadeDirection * FADE_STEP);
+    if (m_brightnessPercent >= MAX_BRIGHTNESS_PERCENT)
     {
-        brightness = 100;
-        step = -FADE_STEP;
+        m_brightnessPercent = MAX_BRIGHTNESS_PERCENT;
+        m_fadeDirection = -1;
     }
-    else if (brightness <= 0)
+    else if (m_brightnessPercent <= 0)
     {
-        brightness = 0;
-        step = FADE_STEP;
+        m_brightnessPercent = 0;
+        m_fadeDirection = 1;
     }
-    m_led1.setBrightnessPercent(brightness);
+    m_led1.setBrightnessPercent(static_cast<uint8_t>(m_brightnessPercent));
 }
 
 void App::logLedMeasurement()
 {
-    const uint16_t voltageAfterPotiMv = m_adcAfterPoti.readMillivolts();
-    const uint16_t voltageLedAnodeMv = m_adcLedAnode.readMillivolts();
+    const auto afterPotiReading = m_adcAfterPoti.readMillivolts();
+    const auto ledAnodeReading =
+        afterPotiReading ? m_adcLedAnode.readMillivolts() : std::optional<uint16_t>{};
+    if (!afterPotiReading || !ledAnodeReading)
+    {
+        m_logger.printf("LED: ADC read failed\r\n");
+        return;
+    }
 
+    const uint16_t voltageAfterPotiMv = *afterPotiReading;
+    const uint16_t voltageLedAnodeMv = *ledAnodeReading;
     const uint16_t ledVoltageMv = voltageLedAnodeMv;
     const uint32_t ledCurrentUa =
         (voltageAfterPotiMv > voltageLedAnodeMv)
@@ -180,23 +209,15 @@ void App::logLedMeasurement()
 
 void App::sendHeartbeat()
 {
-    static uint8_t counter = 0;
-
-    CanMessage msg{};
-    msg.id = 0x123;
-    msg.length = 4;
-    msg.data = {0xDE, 0xAD, 0xBE, counter++};
-
-    std::ignore = m_canBus.send(msg);
+    std::ignore = m_canBus.send(encodeHeartbeat(NODE_ID));
 }
 
 void App::processReceivedMessages()
 {
-    CanMessage message;
-    while (m_canBus.receive(message))
+    while (const auto message = m_canBus.receive())
     {
-        if (!m_canDispatcher.dispatch(message))
-            logReceived(message);
+        if (!m_canDispatcher.dispatch(*message))
+            logReceived(*message);
     }
 }
 

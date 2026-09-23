@@ -115,8 +115,11 @@ power-on
               │           └── logBootBanner(canStatus)             "=== stm32_playground booted === CAN:OK"
               └── while (1) app_run()
                     └── uullrich::playground::App::run()
-                          ├── processReceivedMessages()  drain RX queue → log over UART
-                          ├── sendHeartbeat() every 500 ms
+                          ├── pollButtons()              consumePress() on USER + D8
+                          ├── processPendingTicks()      LED animation for ticks counted by TIM6 ISR
+                          ├── processReceivedMessages()  drain RX queue → CanDispatcher, else log over UART
+                          ├── pollAnimatedOutputOverride()  CAN Set on LD1–LD3 stops the animation
+                          ├── sendHeartbeat() every 500 ms  (CustomCan Heartbeat, node 1)
                           └── logLedMeasurement() every 1 s  → read ADC, log V + I
 ```
 
@@ -126,8 +129,8 @@ HAL weak callbacks have C linkage and only receive a HAL handle. We override the
 
 | HAL callback                                | Defined in                                                        | Dispatches to                                                            |
 | ------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `HAL_GPIO_EXTI_Callback`                    | [src/app/AppFacade.cpp](src/app/AppFacade.cpp)                    | `App::onExti(pin)` → both `Button::handleExti` instances (USER + D8)     |
-| `HAL_TIM_PeriodElapsedCallback`             | [src/app/AppFacade.cpp](src/app/AppFacade.cpp)                    | `App::onTick(htim)` → LED animation                                      |
+| `HAL_GPIO_EXTI_Callback`                    | [src/app/AppFacade.cpp](src/app/AppFacade.cpp)                    | `App::onExti(pin)` → `Button::handleExti` sets atomic press flag        |
+| `HAL_TIM_PeriodElapsedCallback`             | [src/app/AppFacade.cpp](src/app/AppFacade.cpp)                    | `App::onTick(htim)` → increments atomic pending-tick counter            |
 | `HAL_CAN_RxFifo0MsgPendingCallback`         | [src/drivers/can_bus/CanBus.cpp](src/drivers/can_bus/CanBus.cpp)  | `CanBus::onRx()` → push RX `RingBuffer`                                  |
 | `HAL_CAN_TxMailbox{0,1,2}CompleteCallback`  | [src/drivers/can_bus/CanBus.cpp](src/drivers/can_bus/CanBus.cpp)  | `CanBus::onTxComplete()` → drain TX queue                                |
 
@@ -145,7 +148,7 @@ Two routing patterns are used:
 | `uullrich::playground::PwmOutput`        | class             | Thin PWM wrapper (`__HAL_TIM_SET_COMPARE`); owns the timer channel start.                  |
 | `uullrich::playground::DigitalLed`       | class             | LED on top of an `IDigitalOutput` (`on` / `off` / `toggle`).                               |
 | `uullrich::playground::DimmableLed`      | class             | LED on top of an `IPwmOutput` (`on` / `off` / `toggle` / `setBrightnessPercent`).          |
-| `uullrich::playground::Button`           | class             | Pin + debounce window (150 ms) + `std::function<void()>` press handler.                    |
+| `uullrich::playground::Button`           | class             | Pin + debounce window (150 ms); ISR sets atomic flag, main loop calls `consumePress()`.    |
 | `uullrich::playground::ILogger`          | interface         | Abstract sink. Provides non-virtual `printf()` that formats and calls `write`.             |
 | `uullrich::playground::UartLogger`       | class (`final`)   | `ILogger` implementation backed by `HAL_UART_Transmit`.                                    |
 | `uullrich::playground::CanBus`           | class             | HAL_CAN wrapper; owns RX + TX `RingBuffer<CanMessage, 16>`; static `toString(Status)`.     |
@@ -162,7 +165,8 @@ Two routing patterns are used:
 - **RX path decouples ISR from main loop.** The RX ISR reads frames out of the HAL FIFO and pushes onto the software queue with no further work; `app_run()` drains them when it gets CPU.
 - **Lock-free SPSC ring buffer.** Producer and consumer each only modify one `std::atomic<uint32_t>` index (`head` / `tail`) with explicit release/acquire ordering. No critical sections, ISR-safe.
 - **Logger behind an interface.** `App` holds `ILogger&`; switching the sink to RTT, ITM/SWO, or a file requires writing one new class — no app changes.
-- **Button takes a `std::function<void()>`.** Callers pass a `[this]` lambda; the capture fits in libstdc++'s small-buffer optimization, so no heap is involved on this platform.
+- **ISRs only record events.** Button EXTI sets an atomic flag, TIM6 increments an atomic tick counter; `App::run()` consumes both. No application logic runs in interrupt context.
+- **TX queue is IRQ-masked in `send()`.** The TX-mailbox-empty interrupt is disabled while `send()` pushes and drains, so the ISR-side drain never races the main loop.
 - **HAL callbacks are defined exactly once**, in C++ files wrapped in `extern "C"`. No risk of multiple-definition collisions with the HAL's weak symbols.
 
 ---
@@ -350,10 +354,9 @@ std::ignore = m_canBus.send(frame);
 **6. Dispatching an incoming frame (node side, `MY_NODE_ID = 5`)**
 
 ```cpp
-CanMessage frame;
-while (m_canBus.receive(frame))
+while (const auto frame = m_canBus.receive())
 {
-    const CustomCanFrameId id = decodeCustomCanId(frame.id);
+    const CustomCanFrameId id = decodeCustomCanId(frame->id);
     if (id.node != MY_NODE_ID && id.node != CUSTOM_CAN_BROADCAST_NODE)
         continue;
 
@@ -361,28 +364,28 @@ while (m_canBus.receive(frame))
     {
     case CustomCanCommand::SetRequest:
     {
-        CustomCanSetRequest request;
-        if (!decodeSetRequest(frame, request))
+        const auto request = decodeSetRequest(*frame);
+        if (!request)
             break;
 
-        const CustomCanStatus status = applySet(request);
+        const CustomCanStatus status = applySet(*request);
 
         if (id.node != CUSTOM_CAN_BROADCAST_NODE)
         {
-            const CustomCanValueResponse response{ status, request.io, request.value };
+            const CustomCanValueResponse response{ status, request->io, request->value };
             std::ignore = m_canBus.send(encodeSetResponse(MY_NODE_ID, response));
         }
         break;
     }
     case CustomCanCommand::GetRequest:
     {
-        CustomCanGetRequest request;
-        if (!decodeGetRequest(frame, request))
+        const auto request = decodeGetRequest(*frame);
+        if (!request)
             break;
 
         uint32_t value = 0;
-        const CustomCanStatus status = readIo(request.io, value);
-        const CustomCanValueResponse response{ status, request.io, value };
+        const CustomCanStatus status = readIo(request->io, value);
+        const CustomCanValueResponse response{ status, request->io, value };
         std::ignore = m_canBus.send(encodeGetResponse(MY_NODE_ID, response));
         break;
     }
@@ -413,16 +416,17 @@ STM32_Programmer_CLI -c port=SWD -d build/Debug/stm32_playground.elf -rst
 
 ### Unit tests
 
-Standalone host-compiled CMake project; uses the system C++20 compiler. GoogleTest v1.15.2 is fetched via `FetchContent`.
+Standalone host-compiled CMake project; uses the system C++20 compiler. GoogleTest v1.15.2 is fetched via `FetchContent` in `tests/deps/googletest/` (sources land in `tests/deps/googletest/googletest-src/`, gitignored).
 
 ```bash
-cmake -S tests -B build/tests
+cmake -S tests -B build/tests -G Ninja
 cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
 ```
 
-Tests cover `RingBuffer`, `CanMessage`, `ILogger::printf`, and sensor initialization,
-measurement validity, errors, and automatic recovery using a simulated I²C bus.
+Tests cover `RingBuffer`, `CanMessage`, `ILogger::printf`, the `CustomCan` codec, `CanDispatcher`
+request handling, and sensor initialization, measurement validity, errors, and automatic
+recovery using a simulated I²C bus.
 Thin HAL wrappers require hardware checks.
 
 ## CQRobot VL53L1X distance sensor
@@ -452,11 +456,13 @@ VL53L1X: distance=523 mm status=0 valid=1 tick=204 ms
 ```
 
 - Use distances only when **`valid=1`**. `valid=0` indicates an invalid optical result.
-- Runtime errors trigger automatic retries after a 1 s pause. UART reports
-  `retrying error=…` and `measurements resumed` when readings return.
-  `MEASUREMENT_TIMEOUT` means no new data for 500 ms; `TIMEOUT` is a transfer/operation
-  timeout. For `BUS_ERROR`, check wiring and power.
-- After failed initialization or loss of sensor power, fix the cause and reset the board.
+- Runtime errors trigger automatic retries after a 1 s pause. Each retry stops ranging and
+  runs the full initialization again (boot check, sensor ID, default configuration, AVDD pads,
+  long mode, timing), so a sensor that was reset by a brown-out comes back configured.
+  UART reports `retrying error=…` whenever the error kind changes and `measurements resumed`
+  when readings return. `MEASUREMENT_TIMEOUT` means no new data for 500 ms; `TIMEOUT` is a
+  transfer/operation timeout. For `BUS_ERROR`, check wiring and power.
+- After failed initialization, fix the cause and reset the board.
 - API: call `IDistanceSensor::init()`, then `poll(Measurement&)`; consume samples only
   on `Ok`. Keep polling after runtime errors so recovery can proceed.
 - Peripheral changes go through `Playground2.ioc` and CubeMX. Keep I²C1's **16 MHz HSI**
@@ -474,9 +480,9 @@ Driver source, license, and local patches: [ST ULD notes](third_party/vl53l1x_ul
 After flashing:
 
 1. **LEDs** — LD1 (green) fades smoothly 0 → 100 % → 0 over ~2 s; LD2 toggles every 30 ms, LD3 every 70 ms.
-2. **USER button** (PC13) — press to freeze the onboard LED animation; press again to resume.
+2. **USER button** (PC13) — press to freeze the onboard LED animation; press again to resume. A CAN Set request on LD1–LD3 also stops the animation; the USER button restarts it.
 3. **D8 button** (PF12) — press to toggle the external D6 LED (PE9). The animation on LD1/LD2/LD3 is unaffected.
-4. **CAN loopback** — every 500 ms a test frame (`id=0x123`, payload `DE AD BE <counter>`) is enqueued, looped back internally by the bxCAN peripheral, picked up by the RX ISR, and printed over UART. This still uses the bare `CanBus` API — the [CAN protocol](#can-protocol) codec is currently documentation + library only, not yet wired into the boot loop.
+4. **CAN loopback** — every 500 ms a [CAN protocol](#can-protocol) `Heartbeat` from node 1 (`id=0x481`, DLC 0) is enqueued, looped back internally by the bxCAN peripheral, picked up by the RX ISR, and printed over UART (the dispatcher only handles requests, so the heartbeat falls through to the RX log).
 5. **UART** — open the ST-LINK virtual COM port at **115200 8N1**:
 
    ```bash
@@ -488,13 +494,13 @@ After flashing:
 
    ```
    === stm32_playground booted === CAN:OK
-   RX  id=0x123  dlc=4  data=[DE AD BE 00]
-   RX  id=0x123  dlc=4  data=[DE AD BE 01]
+   RX  id=0x481  dlc=0  data=[]
+   RX  id=0x481  dlc=0  data=[]
    LED: V=2149 mV  I=4963 uA
-   RX  id=0x123  dlc=4  data=[DE AD BE 02]
+   RX  id=0x481  dlc=0  data=[]
    ...
    ```
 
-   The CAN counter byte wraps every 256 frames. The LED line appears every 1 s; turning the potentiometer changes the current and forward voltage in real time. The `CAN:` suffix on the boot banner is the result of `CanBus::init()` (`OK` / `ERR:filter` / `ERR:start` / `ERR:notify`).
+   The LED line appears every 1 s; turning the potentiometer changes the current and forward voltage in real time. The `CAN:` suffix on the boot banner is the result of `CanBus::init()` (`OK` / `ERR:filter` / `ERR:start` / `ERR:notify`).
 
 6. **ADC measurement** — connect the external circuit (`3.3V → potentiometer → PA3 → 220 Ω → PC0 → LED → GND`). The reported forward voltage should be ~1.8–2.2 V for a red/yellow LED; current depends on the potentiometer position (5–20 mA typical).

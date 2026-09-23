@@ -3,6 +3,7 @@
 #include "CanMessage.h"
 
 #include <cstdint>
+#include <optional>
 
 namespace uullrich::playground
 {
@@ -45,6 +46,7 @@ using CustomCanNodeId = uint8_t;
 
 constexpr CustomCanNodeId CUSTOM_CAN_BROADCAST_NODE = 0;
 constexpr CustomCanNodeId CUSTOM_CAN_MAX_NODE_ID = 0x7F;
+constexpr uint8_t CUSTOM_CAN_INVALID_IO_FIELD = 0xFF;
 
 struct CustomCanIoAddress
 {
@@ -114,11 +116,11 @@ struct CustomCanError
 [[nodiscard]] CanMessage encodeError(CustomCanNodeId sender, const CustomCanError& error);
 [[nodiscard]] CanMessage encodeHeartbeat(CustomCanNodeId sender);
 
-[[nodiscard]] bool decodeSetRequest(const CanMessage& message, CustomCanSetRequest& out);
-[[nodiscard]] bool decodeGetRequest(const CanMessage& message, CustomCanGetRequest& out);
-[[nodiscard]] bool decodeValueResponse(const CanMessage& message, CustomCanValueResponse& out);
-[[nodiscard]] bool decodeObserveStart(const CanMessage& message, CustomCanObserveStart& out);
-[[nodiscard]] bool decodeObserveStop(const CanMessage& message, CustomCanObserveStop& out);
-[[nodiscard]] bool decodeError(const CanMessage& message, CustomCanError& out);
+[[nodiscard]] std::optional<CustomCanSetRequest> decodeSetRequest(const CanMessage& message);
+[[nodiscard]] std::optional<CustomCanGetRequest> decodeGetRequest(const CanMessage& message);
+[[nodiscard]] std::optional<CustomCanValueResponse> decodeValueResponse(const CanMessage& message);
+[[nodiscard]] std::optional<CustomCanObserveStart> decodeObserveStart(const CanMessage& message);
+[[nodiscard]] std::optional<CustomCanObserveStop> decodeObserveStop(const CanMessage& message);
+[[nodiscard]] std::optional<CustomCanError> decodeError(const CanMessage& message);
 
 }

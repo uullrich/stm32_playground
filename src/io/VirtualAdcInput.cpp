@@ -21,7 +21,12 @@ uint8_t VirtualAdcInput::ioIndex() const
 
 IoStatus VirtualAdcInput::read(uint32_t& value) const
 {
-    value = m_input.readMillivolts();
+    const auto millivolts = m_input.readMillivolts();
+    if (!millivolts)
+    {
+        return IoStatus::ReadError;
+    }
+    value = *millivolts;
     return IoStatus::Ok;
 }
 

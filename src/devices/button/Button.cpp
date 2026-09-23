@@ -1,14 +1,11 @@
 #include "Button.h"
 
-#include <utility>
-
 namespace uullrich::playground
 {
 
-Button::Button(uint16_t pin, uint32_t debounceMs, PressHandler onPress)
+Button::Button(uint16_t pin, uint32_t debounceMs)
     : m_pin{pin},
-      m_debounceMs{debounceMs},
-      m_onPress{std::move(onPress)}
+      m_debounceMs{debounceMs}
 {
 }
 
@@ -22,8 +19,12 @@ void Button::handleExti(uint16_t triggeredPin)
         return;
     m_lastPressTick = now;
 
-    if (m_onPress)
-        m_onPress();
+    m_pressed.store(true);
+}
+
+bool Button::consumePress()
+{
+    return m_pressed.exchange(false);
 }
 
 }

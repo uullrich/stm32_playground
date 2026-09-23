@@ -14,6 +14,9 @@ namespace
 uullrich::playground::Vl53l1xPlatform* g_platform = nullptr;
 constexpr uint32_t TRANSFER_TIMEOUT_MS = 10;
 constexpr uint32_t READY_TIMEOUT_MS = 500;
+constexpr int32_t READY_POLL_INTERVAL_MS = 1;
+constexpr int8_t PLATFORM_OK = 0;
+constexpr int8_t PLATFORM_ERROR = -1;
 }
 
 namespace uullrich::playground
@@ -68,45 +71,45 @@ int8_t Vl53l1xPlatform::read(uint16_t address, uint16_t index, std::span<uint8_t
     std::fill(data.begin(), data.end(), 0);
     const uint32_t remaining = remainingMs();
     if (remaining == 0)
-        return -1;
-    if (address != 0x29 || data.empty() || data.size() > UINT16_MAX)
+        return PLATFORM_ERROR;
+    if (address != VL53L1X_I2C_ADDRESS || data.empty() || data.size() > UINT16_MAX)
         m_status = II2cBus::Status::InvalidArgument;
     else
         m_status = m_bus.read(static_cast<uint8_t>(address), index, data,
                               std::min(remaining, TRANSFER_TIMEOUT_MS));
-    return m_status == II2cBus::Status::Ok ? 0 : -1;
+    return m_status == II2cBus::Status::Ok ? PLATFORM_OK : PLATFORM_ERROR;
 }
 
 int8_t Vl53l1xPlatform::write(uint16_t address, uint16_t index, std::span<const uint8_t> data)
 {
     const uint32_t remaining = remainingMs();
     if (remaining == 0)
-        return -1;
-    if (address != 0x29 || data.empty() || data.size() > UINT16_MAX)
+        return PLATFORM_ERROR;
+    if (address != VL53L1X_I2C_ADDRESS || data.empty() || data.size() > UINT16_MAX)
         m_status = II2cBus::Status::InvalidArgument;
     else
         m_status = m_bus.write(static_cast<uint8_t>(address), index, data,
                                std::min(remaining, TRANSFER_TIMEOUT_MS));
-    return m_status == II2cBus::Status::Ok ? 0 : -1;
+    return m_status == II2cBus::Status::Ok ? PLATFORM_OK : PLATFORM_ERROR;
 }
 
 int8_t Vl53l1xPlatform::waitMs(int32_t durationMs)
 {
     const uint32_t remaining = remainingMs();
     if (remaining == 0)
-        return -1;
+        return PLATFORM_ERROR;
     if (durationMs < 0)
     {
         m_status = II2cBus::Status::InvalidArgument;
-        return -1;
+        return PLATFORM_ERROR;
     }
     if (static_cast<uint32_t>(durationMs) >= remaining)
     {
         timeout();
-        return -1;
+        return PLATFORM_ERROR;
     }
     HAL_Delay(static_cast<uint32_t>(durationMs));
-    return 0;
+    return PLATFORM_OK;
 }
 
 void Vl53l1xPlatform::timeout()
@@ -123,18 +126,18 @@ extern "C"
 int8_t VL53L1_WriteMulti(uint16_t dev, uint16_t index, uint8_t* data, uint32_t count)
 {
     if (g_platform == nullptr || data == nullptr)
-        return -1;
+        return PLATFORM_ERROR;
     return g_platform->write(dev, index, {data, count});
 }
 
 int8_t VL53L1_ReadMulti(uint16_t dev, uint16_t index, uint8_t* data, uint32_t count)
 {
     if (data == nullptr)
-        return -1;
+        return PLATFORM_ERROR;
     if (g_platform == nullptr)
     {
         std::fill_n(data, count, 0);
-        return -1;
+        return PLATFORM_ERROR;
     }
     return g_platform->read(dev, index, {data, count});
 }
@@ -165,7 +168,7 @@ int8_t VL53L1_RdByte(uint16_t dev, uint16_t index, uint8_t* data)
 int8_t VL53L1_RdWord(uint16_t dev, uint16_t index, uint16_t* data)
 {
     if (data == nullptr)
-        return -1;
+        return PLATFORM_ERROR;
     uint8_t bytes[2]{};
     const int8_t status = VL53L1_ReadMulti(dev, index, bytes, sizeof(bytes));
     *data = static_cast<uint16_t>((bytes[0] << 8) | bytes[1]);
@@ -175,7 +178,7 @@ int8_t VL53L1_RdWord(uint16_t dev, uint16_t index, uint16_t* data)
 int8_t VL53L1_RdDWord(uint16_t dev, uint16_t index, uint32_t* data)
 {
     if (data == nullptr)
-        return -1;
+        return PLATFORM_ERROR;
     uint8_t bytes[4]{};
     const int8_t status = VL53L1_ReadMulti(dev, index, bytes, sizeof(bytes));
     *data = (static_cast<uint32_t>(bytes[0]) << 24) |
@@ -186,30 +189,30 @@ int8_t VL53L1_RdDWord(uint16_t dev, uint16_t index, uint32_t* data)
 
 int8_t VL53L1_WaitMs(uint16_t dev, int32_t waitMs)
 {
-    if (g_platform == nullptr || dev != 0x29)
-        return -1;
+    if (g_platform == nullptr || dev != uullrich::playground::VL53L1X_I2C_ADDRESS)
+        return PLATFORM_ERROR;
     return g_platform->waitMs(waitMs);
 }
 
 int8_t VL53L1_WaitForDataReady(uint16_t dev)
 {
-    if (g_platform == nullptr || dev != 0x29)
-        return -1;
+    if (g_platform == nullptr || dev != uullrich::playground::VL53L1X_I2C_ADDRESS)
+        return PLATFORM_ERROR;
     const uint32_t startedMs = HAL_GetTick();
     for (;;)
     {
         uint8_t ready = 0;
-        if (VL53L1X_CheckForDataReady(dev, &ready) != 0)
-            return -1;
+        if (VL53L1X_CheckForDataReady(dev, &ready) != PLATFORM_OK)
+            return PLATFORM_ERROR;
         if (ready != 0)
-            return 0;
+            return PLATFORM_OK;
         if (HAL_GetTick() - startedMs >= READY_TIMEOUT_MS)
         {
             g_platform->timeout();
-            return -1;
+            return PLATFORM_ERROR;
         }
-        if (VL53L1_WaitMs(dev, 1) != 0)
-            return -1;
+        if (VL53L1_WaitMs(dev, READY_POLL_INTERVAL_MS) != PLATFORM_OK)
+            return PLATFORM_ERROR;
     }
 }
 

@@ -34,7 +34,52 @@ uint32_t readU32(const uint8_t* source)
 
 bool isStandardDataFrame(const uullrich::playground::CanMessage& message, uint8_t expectedLength)
 {
-    return !message.extended && !message.remote && message.length >= expectedLength;
+    return !message.extended && !message.remote && message.length == expectedLength;
+}
+
+bool hasCommand(const uullrich::playground::CanMessage& message,
+                uullrich::playground::CustomCanCommand expected)
+{
+    return uullrich::playground::decodeCustomCanId(message.id).command == expected;
+}
+
+bool isValueResponseCommand(uullrich::playground::CustomCanCommand command)
+{
+    using enum uullrich::playground::CustomCanCommand;
+    return command == SetResponse || command == GetResponse || command == Event ||
+           command == ObserveResponse;
+}
+
+bool isKnownStatus(uint8_t raw)
+{
+    using enum uullrich::playground::CustomCanStatus;
+    switch (static_cast<uullrich::playground::CustomCanStatus>(raw))
+    {
+    case Ok:
+    case UnknownIoType:
+    case UnknownIoIndex:
+    case IoNotConfigured:
+    case ValueOutOfRange:
+    case NotSupported:
+    case BusError:
+    case MalformedPayload:
+        return true;
+    }
+    return false;
+}
+
+uullrich::playground::CanMessage encodeValueResponse(
+    uullrich::playground::CustomCanCommand command, uullrich::playground::CustomCanNodeId sender,
+    const uullrich::playground::CustomCanValueResponse& response)
+{
+    uullrich::playground::CanMessage message{};
+    message.id = uullrich::playground::encodeCustomCanId(command, sender);
+    message.length = 7;
+    message.data[0] = static_cast<uint8_t>(response.status);
+    message.data[1] = static_cast<uint8_t>(response.io.type);
+    message.data[2] = response.io.index;
+    writeU32(&message.data[3], response.value);
+    return message;
 }
 
 }
@@ -44,7 +89,7 @@ namespace uullrich::playground
 
 uint32_t encodeCustomCanId(CustomCanCommand command, CustomCanNodeId node)
 {
-    return (static_cast<uint32_t>(command) << COMMAND_SHIFT) | (node & NODE_MASK);
+    return ((static_cast<uint32_t>(command) & COMMAND_MASK) << COMMAND_SHIFT) | (node & NODE_MASK);
 }
 
 CustomCanFrameId decodeCustomCanId(uint32_t id)
@@ -68,14 +113,7 @@ CanMessage encodeSetRequest(CustomCanNodeId target, const CustomCanSetRequest& r
 
 CanMessage encodeSetResponse(CustomCanNodeId sender, const CustomCanValueResponse& response)
 {
-    CanMessage message{};
-    message.id = encodeCustomCanId(CustomCanCommand::SetResponse, sender);
-    message.length = 7;
-    message.data[0] = static_cast<uint8_t>(response.status);
-    message.data[1] = static_cast<uint8_t>(response.io.type);
-    message.data[2] = response.io.index;
-    writeU32(&message.data[3], response.value);
-    return message;
+    return encodeValueResponse(CustomCanCommand::SetResponse, sender, response);
 }
 
 CanMessage encodeGetRequest(CustomCanNodeId target, const CustomCanGetRequest& request)
@@ -90,26 +128,12 @@ CanMessage encodeGetRequest(CustomCanNodeId target, const CustomCanGetRequest& r
 
 CanMessage encodeGetResponse(CustomCanNodeId sender, const CustomCanValueResponse& response)
 {
-    CanMessage message{};
-    message.id = encodeCustomCanId(CustomCanCommand::GetResponse, sender);
-    message.length = 7;
-    message.data[0] = static_cast<uint8_t>(response.status);
-    message.data[1] = static_cast<uint8_t>(response.io.type);
-    message.data[2] = response.io.index;
-    writeU32(&message.data[3], response.value);
-    return message;
+    return encodeValueResponse(CustomCanCommand::GetResponse, sender, response);
 }
 
 CanMessage encodeEvent(CustomCanNodeId sender, const CustomCanValueResponse& event)
 {
-    CanMessage message{};
-    message.id = encodeCustomCanId(CustomCanCommand::Event, sender);
-    message.length = 7;
-    message.data[0] = static_cast<uint8_t>(event.status);
-    message.data[1] = static_cast<uint8_t>(event.io.type);
-    message.data[2] = event.io.index;
-    writeU32(&message.data[3], event.value);
-    return message;
+    return encodeValueResponse(CustomCanCommand::Event, sender, event);
 }
 
 CanMessage encodeObserveStart(CustomCanNodeId target, const CustomCanObserveStart& request)
@@ -136,14 +160,7 @@ CanMessage encodeObserveStop(CustomCanNodeId target, const CustomCanObserveStop&
 
 CanMessage encodeObserveResponse(CustomCanNodeId sender, const CustomCanValueResponse& response)
 {
-    CanMessage message{};
-    message.id = encodeCustomCanId(CustomCanCommand::ObserveResponse, sender);
-    message.length = 7;
-    message.data[0] = static_cast<uint8_t>(response.status);
-    message.data[1] = static_cast<uint8_t>(response.io.type);
-    message.data[2] = response.io.index;
-    writeU32(&message.data[3], response.value);
-    return message;
+    return encodeValueResponse(CustomCanCommand::ObserveResponse, sender, response);
 }
 
 CanMessage encodeError(CustomCanNodeId sender, const CustomCanError& error)
@@ -163,62 +180,71 @@ CanMessage encodeHeartbeat(CustomCanNodeId sender)
     return message;
 }
 
-bool decodeSetRequest(const CanMessage& message, CustomCanSetRequest& out)
+std::optional<CustomCanSetRequest> decodeSetRequest(const CanMessage& message)
 {
-    if (!isStandardDataFrame(message, 6))
-        return false;
-    out.io.type = static_cast<CustomCanIoType>(message.data[0]);
-    out.io.index = message.data[1];
-    out.value = readU32(&message.data[2]);
-    return true;
+    if (!isStandardDataFrame(message, 6) || !hasCommand(message, CustomCanCommand::SetRequest))
+        return std::nullopt;
+    CustomCanSetRequest request{};
+    request.io.type = static_cast<CustomCanIoType>(message.data[0]);
+    request.io.index = message.data[1];
+    request.value = readU32(&message.data[2]);
+    return request;
 }
 
-bool decodeGetRequest(const CanMessage& message, CustomCanGetRequest& out)
+std::optional<CustomCanGetRequest> decodeGetRequest(const CanMessage& message)
 {
-    if (!isStandardDataFrame(message, 2))
-        return false;
-    out.io.type = static_cast<CustomCanIoType>(message.data[0]);
-    out.io.index = message.data[1];
-    return true;
+    if (!isStandardDataFrame(message, 2) || !hasCommand(message, CustomCanCommand::GetRequest))
+        return std::nullopt;
+    CustomCanGetRequest request{};
+    request.io.type = static_cast<CustomCanIoType>(message.data[0]);
+    request.io.index = message.data[1];
+    return request;
 }
 
-bool decodeValueResponse(const CanMessage& message, CustomCanValueResponse& out)
+std::optional<CustomCanValueResponse> decodeValueResponse(const CanMessage& message)
 {
-    if (!isStandardDataFrame(message, 7))
-        return false;
-    out.status = static_cast<CustomCanStatus>(message.data[0]);
-    out.io.type = static_cast<CustomCanIoType>(message.data[1]);
-    out.io.index = message.data[2];
-    out.value = readU32(&message.data[3]);
-    return true;
+    if (!isStandardDataFrame(message, 7) ||
+        !isValueResponseCommand(decodeCustomCanId(message.id).command) ||
+        !isKnownStatus(message.data[0]))
+        return std::nullopt;
+    CustomCanValueResponse response{};
+    response.status = static_cast<CustomCanStatus>(message.data[0]);
+    response.io.type = static_cast<CustomCanIoType>(message.data[1]);
+    response.io.index = message.data[2];
+    response.value = readU32(&message.data[3]);
+    return response;
 }
 
-bool decodeObserveStart(const CanMessage& message, CustomCanObserveStart& out)
+std::optional<CustomCanObserveStart> decodeObserveStart(const CanMessage& message)
 {
-    if (!isStandardDataFrame(message, 6))
-        return false;
-    out.io.type = static_cast<CustomCanIoType>(message.data[0]);
-    out.io.index = message.data[1];
-    out.periodMs = readU16(&message.data[2]);
-    out.hysteresis = readU16(&message.data[4]);
-    return true;
+    if (!isStandardDataFrame(message, 6) || !hasCommand(message, CustomCanCommand::ObserveStart))
+        return std::nullopt;
+    CustomCanObserveStart request{};
+    request.io.type = static_cast<CustomCanIoType>(message.data[0]);
+    request.io.index = message.data[1];
+    request.periodMs = readU16(&message.data[2]);
+    request.hysteresis = readU16(&message.data[4]);
+    return request;
 }
 
-bool decodeObserveStop(const CanMessage& message, CustomCanObserveStop& out)
+std::optional<CustomCanObserveStop> decodeObserveStop(const CanMessage& message)
 {
-    if (!isStandardDataFrame(message, 2))
-        return false;
-    out.io.type = static_cast<CustomCanIoType>(message.data[0]);
-    out.io.index = message.data[1];
-    return true;
+    if (!isStandardDataFrame(message, 2) || !hasCommand(message, CustomCanCommand::ObserveStop))
+        return std::nullopt;
+    CustomCanObserveStop request{};
+    request.io.type = static_cast<CustomCanIoType>(message.data[0]);
+    request.io.index = message.data[1];
+    return request;
 }
 
-bool decodeError(const CanMessage& message, CustomCanError& out)
+std::optional<CustomCanError> decodeError(const CanMessage& message)
 {
-    if (!isStandardDataFrame(message, 1))
-        return false;
-    out.code = static_cast<CustomCanStatus>(message.data[0]);
-    return true;
+    if (!isStandardDataFrame(message, 1) || !hasCommand(message, CustomCanCommand::Error) ||
+        !isKnownStatus(message.data[0]))
+        return std::nullopt;
+    CustomCanError error{};
+    error.code = static_cast<CustomCanStatus>(message.data[0]);
+    return error;
 }
 
 }

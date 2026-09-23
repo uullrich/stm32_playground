@@ -18,10 +18,10 @@ class Vl53l1x final : public IDistanceSensor
     [[nodiscard]] Status disable(Status status);
     [[nodiscard]] Status scheduleRecovery(Status status);
     [[nodiscard]] Status recover();
+    [[nodiscard]] Status configure();
 
     enum class RecoveryState { None, Backoff, WaitingForStop };
 
-    static constexpr uint16_t ADDRESS = 0x29;
     static constexpr uint32_t INIT_TIMEOUT_MS = 1000;
     static constexpr uint32_t MEASUREMENT_TIMEOUT_MS = 500;
     static constexpr uint32_t POLL_TIMEOUT_MS = 40;

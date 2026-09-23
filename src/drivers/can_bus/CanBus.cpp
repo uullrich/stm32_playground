@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstring>
+#include <tuple>
 
 namespace
 {
@@ -73,36 +74,39 @@ CanBus::Status CanBus::init()
 CanBus::Status CanBus::send(const CanMessage& msg)
 {
     using enum Status;
-    if (!m_txQueue.push(msg))
-        return TxQueueFull;
-    drainTxQueue();
-    return Ok;
+    // RQCP stays set while masked, so a TX-complete IRQ missed here fires on re-enable.
+    __HAL_CAN_DISABLE_IT(&m_hcan, CAN_IT_TX_MAILBOX_EMPTY);
+    const bool queued = m_txQueue.push(msg);
+    if (queued)
+        drainTxQueue();
+    __HAL_CAN_ENABLE_IT(&m_hcan, CAN_IT_TX_MAILBOX_EMPTY);
+    return queued ? Ok : TxQueueFull;
 }
 
-bool CanBus::receive(CanMessage& out)
+std::optional<CanMessage> CanBus::receive()
 {
-    return m_rxQueue.pop(out);
+    return m_rxQueue.pop();
 }
 
 void CanBus::drainTxQueue()
 {
     while (!m_txQueue.isEmpty() && HAL_CAN_GetTxMailboxesFreeLevel(&m_hcan) > 0)
     {
-        CanMessage msg;
-        if (!m_txQueue.pop(msg))
+        const auto msg = m_txQueue.pop();
+        if (!msg)
             break;
 
         CAN_TxHeaderTypeDef header{};
-        header.IDE = msg.extended ? CAN_ID_EXT : CAN_ID_STD;
-        header.RTR = msg.remote ? CAN_RTR_REMOTE : CAN_RTR_DATA;
-        header.DLC = msg.length;
-        if (msg.extended)
-            header.ExtId = msg.id;
+        header.IDE = msg->extended ? CAN_ID_EXT : CAN_ID_STD;
+        header.RTR = msg->remote ? CAN_RTR_REMOTE : CAN_RTR_DATA;
+        header.DLC = msg->length;
+        if (msg->extended)
+            header.ExtId = msg->id;
         else
-            header.StdId = msg.id;
+            header.StdId = msg->id;
 
         uint32_t mailbox = 0;
-        if (HAL_CAN_AddTxMessage(&m_hcan, &header, msg.data.data(), &mailbox) != HAL_OK)
+        if (HAL_CAN_AddTxMessage(&m_hcan, &header, msg->data.data(), &mailbox) != HAL_OK)
             break;
     }
 }
@@ -124,7 +128,7 @@ void CanBus::onRx()
         msg.length = static_cast<uint8_t>(header.DLC);
         msg.data = data;
 
-        (void)m_rxQueue.push(msg);
+        std::ignore = m_rxQueue.push(msg);
     }
 }
 

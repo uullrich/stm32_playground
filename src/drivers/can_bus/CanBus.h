@@ -4,6 +4,8 @@
 #include "RingBuffer.h"
 #include "stm32f7xx_hal.h"
 
+#include <optional>
+
 namespace uullrich::playground
 {
 
@@ -21,7 +23,7 @@ class CanBus : public ICanBus
 
     [[nodiscard]] Status init() override;
     [[nodiscard]] Status send(const CanMessage& msg) override;
-    [[nodiscard]] bool receive(CanMessage& out) override;
+    [[nodiscard]] std::optional<CanMessage> receive() override;
 
     [[nodiscard]] CAN_HandleTypeDef* halHandle() const;
 

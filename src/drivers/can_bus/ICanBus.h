@@ -2,6 +2,8 @@
 
 #include "CanMessage.h"
 
+#include <optional>
+
 namespace uullrich::playground
 {
 
@@ -21,7 +23,7 @@ class ICanBus
 
     [[nodiscard]] virtual Status init() = 0;
     [[nodiscard]] virtual Status send(const CanMessage& message) = 0;
-    [[nodiscard]] virtual bool receive(CanMessage& out) = 0;
+    [[nodiscard]] virtual std::optional<CanMessage> receive() = 0;
 
     [[nodiscard]] static const char* toString(Status status);
 };
