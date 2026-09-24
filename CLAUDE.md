@@ -2,7 +2,7 @@
 
 ## Project
 
-STM32F767ZI NUCLEO firmware in C++20. Thin HAL wrappers over STMicro CubeMX peripherals.
+STM32F767ZI NUCLEO firmware in C++23. Thin HAL wrappers over STMicro CubeMX peripherals.
 All hand-written code lives under `src/`. Host-compiled unit tests under `tests/`.
 
 ## Build commands
@@ -13,7 +13,7 @@ cmake --preset Debug
 cmake --build --preset Debug
 # Output: build/Debug/stm32_playground.elf
 
-# Unit tests (system C++20 compiler)
+# Unit tests (system C++23 compiler)
 cmake -S tests -B build/tests -G Ninja
 cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
@@ -39,6 +39,7 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 - **C ABI bridge**: `extern "C"` functions exist only in `AppFacade.cpp` (`app_init`/`app_run` called from `main.c`, EXTI/TIM callbacks), `CanBus.cpp` (HAL CAN callbacks) and `Vl53l1xPlatform.cpp` (ST ULD platform functions). `hi2c1` is taken via `extern` in `AppFacade.cpp` because the `app_init()` call in `main.c` predates I2C1.
 - **LED ownership**: LD1–LD3 are animated by `App`. A successful CAN Set on one of them (`CanDispatcher` → `IIoWriteListener` → `IoConnector`) stops the animation; the USER button restarts it.
 - **Build target**: all `src/` code is compiled in the `playground_app` OBJECT library with `-Wextra -Wconversion -Wsign-conversion -Wshadow -Wpedantic`. It must stay OBJECT (not STATIC), otherwise the linker may drop the strong HAL callback overrides. Keep `src/` warning-free.
+- **Timing**: all millisecond timing goes through `SysTickClock` (`src/util/SysTickClock.h`, `std::chrono` clock over `HAL_GetTick`) and `delay()`. `HAL_GetTick`/`HAL_Delay` are called only in `SysTickClock.cpp`. Ticks wrap after ~49.7 days: compare elapsed durations (`SysTickClock::now() - start >= TIMEOUT`), never time points. Durations are `std::chrono::milliseconds`; `.count()` only at HAL/C boundaries and in log output.
 - **Dependencies (tests)**: GoogleTest is declared only in `tests/deps/googletest/CMakeLists.txt`; `tests/CMakeLists.txt` only does `add_subdirectory(deps)`.
 
 ## Coding style
@@ -47,6 +48,9 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 - No comments unless the WHY is non-obvious (hidden constraint, workaround, subtle invariant).
 - No docstrings or multi-line comment blocks.
 - Prefer `[[nodiscard]]` on functions whose return value signals errors.
+- No `bool`/status + out-parameter APIs: return `std::optional<T>` (value or nothing) or `std::expected<T, E>` (value or error kind). Never call `.value()` (throws, and exceptions are disabled): check `has_value()`, then use `*`/`->`, or `value_or()`.
+- Concrete classes that nothing derives from are `final`. Classes holding references/pointers to hardware or sibling objects delete copy construction and copy assignment. Constructors with parameters are `explicit`.
+- Explicit memory orders on `std::atomic` operations.
 - File names for C, C++ are PascalCase
 - Global variables have g\_ prefix and are camelCase
 - `constexpr` and `const` values: `UPPER_SNAKE_CASE`, no `k` prefix.  
@@ -65,7 +69,7 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
   ✗ `c1`, `motorPulseWideModulation`
   ✓ `counter1`, `motorPWM`
 - Method names must be camelCase
-- No implementations in the method definition in the header
+- No implementations in the method definition in the header. Only exception: `src/protocols/custom_can/CustomCanCodec.h` is a header-only `constexpr` codec so it can be checked with `static_assert` (helpers in namespace `Detail`).
 - A file may contain only one class, no more
 - use std::ignore when calling a method marked as [[nodiscard]] when the return value is not used
 - Fixed-width integer types: use without `std::` prefix; size types: use with `std::` prefix.  
@@ -75,7 +79,7 @@ All unit test code: `namespace uullrich::playground::test {}`. No closing brace 
 
 ## Test scope
 
-Tested on host: `RingBuffer`, `CanMessage`, `ILogger::printf` formatting (via `MockLogger`), `Vl53l1x` (via `SimulatedVl53l1xBus`), `CustomCan` codec, `CanDispatcher` (real `IoRepository`/`Virtual*` IOs over gmock driver mocks in `tests/support/Mock*.h`).
+Tested on host: `RingBuffer`, `CanMessage`, `ILogger::printf` formatting (via `MockLogger`), `Vl53l1x` (via `SimulatedVl53l1xBus`), `CustomCan` codec (runtime tests + `static_assert`s), `CanDispatcher` (real `IoRepository`/`Virtual*` IOs over gmock driver mocks in `tests/support/Mock*.h`), `SysTickClock` (wraparound).
 Not unit-tested (verified on hardware only): `DigitalLed`, `PwmLed`, `Button`, `UartLogger`, `CanBus`, `AdcInput`.
 Do not add host tests for the thin HAL wrappers.
 

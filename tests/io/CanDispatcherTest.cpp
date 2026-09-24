@@ -235,11 +235,8 @@ TEST_F(CanDispatcherTest, SetReadbackFailureRespondsBusErrorWithZeroValue)
     ON_CALL(io, ioType()).WillByDefault(Return(IoType::DigitalOutput));
     ON_CALL(io, ioIndex()).WillByDefault(Return(MOCK_IO_INDEX));
     ASSERT_TRUE(m_repository.add(io));
-    EXPECT_CALL(io, write(1)).WillOnce(Return(IoStatus::Ok));
-    EXPECT_CALL(io, read(_)).WillOnce([](uint32_t& value) {
-        value = 1;
-        return IoStatus::ReadError;
-    });
+    EXPECT_CALL(io, write(1)).WillOnce(Return(IoWriteResult{}));
+    EXPECT_CALL(io, read()).WillOnce(Return(IoReadResult{std::unexpect, IoStatus::ReadError}));
     EXPECT_CALL(m_writeListener, onWritten(Ref(io)));
 
     EXPECT_TRUE(m_dispatcher.dispatch(

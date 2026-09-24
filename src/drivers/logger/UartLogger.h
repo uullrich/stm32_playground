@@ -3,6 +3,7 @@
 #include "ILogger.h"
 #include "stm32f7xx_hal.h"
 
+#include <chrono>
 #include <cstdint>
 
 namespace uullrich::playground
@@ -19,7 +20,7 @@ class UartLogger final : public ILogger
     void write(std::string_view text) const override;
 
   private:
-    static constexpr uint32_t TX_TIMEOUT_MS = 100;
+    static constexpr std::chrono::milliseconds TX_TIMEOUT{100};
 
     UART_HandleTypeDef& m_uart;
 };

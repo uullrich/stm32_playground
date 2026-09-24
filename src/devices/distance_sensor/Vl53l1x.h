@@ -2,6 +2,9 @@
 
 #include "IDistanceSensor.h"
 #include "Vl53l1xPlatform.h"
+#include "SysTickClock.h"
+
+#include <chrono>
 
 namespace uullrich::playground
 {
@@ -10,8 +13,12 @@ class Vl53l1x final : public IDistanceSensor
 {
   public:
     explicit Vl53l1x(II2cBus& bus);
+
+    Vl53l1x(const Vl53l1x&) = delete;
+    Vl53l1x& operator=(const Vl53l1x&) = delete;
+
     [[nodiscard]] Status init() override;
-    [[nodiscard]] Status poll(Measurement& measurement) override;
+    [[nodiscard]] PollResult poll() override;
 
   private:
     [[nodiscard]] Status driverStatus(int8_t result) const;
@@ -22,17 +29,17 @@ class Vl53l1x final : public IDistanceSensor
 
     enum class RecoveryState { None, Backoff, WaitingForStop };
 
-    static constexpr uint32_t INIT_TIMEOUT_MS = 1000;
-    static constexpr uint32_t MEASUREMENT_TIMEOUT_MS = 500;
-    static constexpr uint32_t POLL_TIMEOUT_MS = 40;
-    static constexpr uint32_t RECOVERY_BACKOFF_MS = 1000;
-    static constexpr uint32_t STOP_SETTLE_MS = 100;
+    static constexpr std::chrono::milliseconds INIT_TIMEOUT{1000};
+    static constexpr std::chrono::milliseconds MEASUREMENT_TIMEOUT{500};
+    static constexpr std::chrono::milliseconds POLL_TIMEOUT{40};
+    static constexpr std::chrono::milliseconds RECOVERY_BACKOFF{1000};
+    static constexpr std::chrono::milliseconds STOP_SETTLE{100};
 
     Vl53l1xPlatform m_platform;
     bool m_active{false};
-    uint32_t m_lastMeasurementMs{0};
+    SysTickClock::time_point m_lastMeasurement{};
     RecoveryState m_recoveryState{RecoveryState::None};
-    uint32_t m_recoveryTick{0};
+    SysTickClock::time_point m_recoveryStart{};
 };
 
 }

@@ -3,9 +3,9 @@
 namespace uullrich::playground
 {
 
-Button::Button(uint16_t pin, uint32_t debounceMs)
+Button::Button(uint16_t pin, std::chrono::milliseconds debounce)
     : m_pin{pin},
-      m_debounceMs{debounceMs}
+      m_debounce{debounce}
 {
 }
 
@@ -14,17 +14,17 @@ void Button::handleExti(uint16_t triggeredPin)
     if (triggeredPin != m_pin)
         return;
 
-    const uint32_t now = HAL_GetTick();
-    if ((now - m_lastPressTick) < m_debounceMs)
+    const auto now = SysTickClock::now();
+    if (now - m_lastPress < m_debounce)
         return;
-    m_lastPressTick = now;
+    m_lastPress = now;
 
-    m_pressed.store(true);
+    m_pressed.store(true, std::memory_order_release);
 }
 
 bool Button::consumePress()
 {
-    return m_pressed.exchange(false);
+    return m_pressed.exchange(false, std::memory_order_acquire);
 }
 
 }

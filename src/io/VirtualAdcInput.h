@@ -6,15 +6,18 @@
 namespace uullrich::playground
 {
 
-class VirtualAdcInput : public IVirtualIo
+class VirtualAdcInput final : public IVirtualIo
 {
   public:
-    VirtualAdcInput(IAdcInput& input, uint8_t index);
+    explicit VirtualAdcInput(IAdcInput& input, uint8_t index);
+
+    VirtualAdcInput(const VirtualAdcInput&) = delete;
+    VirtualAdcInput& operator=(const VirtualAdcInput&) = delete;
 
     [[nodiscard]] IoType ioType() const override;
     [[nodiscard]] uint8_t ioIndex() const override;
-    [[nodiscard]] IoStatus read(uint32_t& value) const override;
-    [[nodiscard]] IoStatus write(uint32_t value) override;
+    [[nodiscard]] IoReadResult read() const override;
+    [[nodiscard]] IoWriteResult write(uint32_t value) override;
 
   private:
     IAdcInput& m_input;

@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(stm32_playground_tests C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -22,6 +22,7 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 add_executable(unit_tests
     # --- test sources (mirror ../src/ tree) ---
     util/RingBufferTest.cpp
+    util/SysTickClockTest.cpp
     drivers/can_bus/CanMessageTest.cpp
     drivers/logger/ILoggerTest.cpp
     devices/distance_sensor/Vl53l1xTest.cpp
@@ -29,11 +30,11 @@ add_executable(unit_tests
     io/CanDispatcherTest.cpp
 
     # --- production sources under test ---
+    ${SRC_DIR}/util/SysTickClock.cpp
     ${SRC_DIR}/drivers/logger/ILogger.cpp
     ${SRC_DIR}/devices/distance_sensor/IDistanceSensor.cpp
     ${SRC_DIR}/devices/distance_sensor/Vl53l1x.cpp
     ${SRC_DIR}/devices/distance_sensor/Vl53l1xPlatform.cpp
-    ${SRC_DIR}/protocols/custom_can/CustomCan.cpp
     ${SRC_DIR}/io/CanDispatcher.cpp
     ${SRC_DIR}/io/IoRepository.cpp
     ${SRC_DIR}/io/VirtualDigitalOutput.cpp

@@ -1,5 +1,7 @@
 #include "AdcInput.h"
 
+#include <tuple>
+
 namespace uullrich::playground
 {
 
@@ -26,14 +28,14 @@ std::optional<uint16_t> AdcInput::readMillivolts()
         return std::nullopt;
     }
 
-    if (HAL_ADC_PollForConversion(&m_hadc, POLL_TIMEOUT_MS) != HAL_OK)
+    if (HAL_ADC_PollForConversion(&m_hadc, static_cast<uint32_t>(POLL_TIMEOUT.count())) != HAL_OK)
     {
-        HAL_ADC_Stop(&m_hadc);
+        std::ignore = HAL_ADC_Stop(&m_hadc);
         return std::nullopt;
     }
 
     const uint32_t raw = HAL_ADC_GetValue(&m_hadc);
-    HAL_ADC_Stop(&m_hadc);
+    std::ignore = HAL_ADC_Stop(&m_hadc);
 
     return static_cast<uint16_t>((raw * VREF_MV) / ADC_MAX_COUNT);
 }

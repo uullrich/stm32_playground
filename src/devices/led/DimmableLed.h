@@ -8,7 +8,7 @@
 namespace uullrich::playground
 {
 
-class DimmableLed : public IDimmableLed
+class DimmableLed final : public IDimmableLed
 {
   public:
     explicit DimmableLed(IPwmOutput& output);

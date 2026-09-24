@@ -3,6 +3,7 @@
 #include "main.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <optional>
 #include <tuple>
@@ -20,8 +21,8 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
       m_led3{m_ld3Output},
       m_d6Led{m_d6Output},
       m_led1{m_ld1Output},
-      m_button{USER_Btn_Pin, BUTTON_DEBOUNCE_MS},
-      m_d8Button{D8_Button_Pin, BUTTON_DEBOUNCE_MS},
+      m_button{USER_Btn_Pin, BUTTON_DEBOUNCE},
+      m_d8Button{D8_Button_Pin, BUTTON_DEBOUNCE},
       m_canBus{hcan},
       m_logger{logger},
       m_adcAfterPoti{hadc, ADC_CHANNEL_3},
@@ -37,8 +38,10 @@ App::App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef&
 void App::init()
 {
     const auto canStatus = m_canBus.init();
-    HAL_TIM_Base_Start_IT(&m_tickTimer);
+    const HAL_StatusTypeDef tickTimerStatus = HAL_TIM_Base_Start_IT(&m_tickTimer);
     logBootBanner(canStatus);
+    if (tickTimerStatus != HAL_OK)
+        m_logger.printf("TIM: tick timer start failed status=%u\r\n", static_cast<unsigned>(tickTimerStatus));
     const auto sensorStatus = m_distanceSensor.init();
     m_distanceActive = sensorStatus == IDistanceSensor::Status::Ok;
     m_logger.printf("VL53L1X: init=%s\r\n", IDistanceSensor::toString(sensorStatus));
@@ -56,32 +59,32 @@ void App::run()
     pollButtons();
     processPendingTicks();
 
-    const uint32_t now = HAL_GetTick();
-    if (m_distanceActive && (now - m_lastDistancePollTick) >= DISTANCE_POLL_PERIOD_MS)
+    const auto now = SysTickClock::now();
+    if (m_distanceActive && now - m_lastDistancePoll >= DISTANCE_POLL_PERIOD)
     {
-        m_lastDistancePollTick = now;
+        m_lastDistancePoll = now;
         pollDistance();
     }
-    if ((now - m_lastHeartbeatTick) >= HEARTBEAT_PERIOD_MS)
+    if (now - m_lastHeartbeat >= HEARTBEAT_PERIOD)
     {
-        m_lastHeartbeatTick = now;
+        m_lastHeartbeat = now;
         sendHeartbeat();
     }
-    if ((now - m_lastLedMeasureTick) >= LED_MEASURE_PERIOD_MS)
+    if (now - m_lastLedMeasure >= LED_MEASURE_PERIOD)
     {
-        m_lastLedMeasureTick = now;
+        m_lastLedMeasure = now;
         logLedMeasurement();
     }
 }
 
 void App::pollDistance()
 {
-    IDistanceSensor::Measurement measurement;
-    const auto status = m_distanceSensor.poll(measurement);
-    if (status == IDistanceSensor::Status::NotReady)
-        return;
-    if (status != IDistanceSensor::Status::Ok)
+    const auto measurement = m_distanceSensor.poll();
+    if (!measurement)
     {
+        const IDistanceSensor::Status status = measurement.error();
+        if (status == IDistanceSensor::Status::NotReady)
+            return;
         if (status == IDistanceSensor::Status::Disabled)
         {
             m_distanceActive = false;
@@ -99,16 +102,16 @@ void App::pollDistance()
         m_lastDistanceError = IDistanceSensor::Status::Ok;
     }
     m_logger.printf("VL53L1X: distance=%u mm status=%u valid=%u tick=%lu ms\r\n",
-        static_cast<unsigned>(measurement.distanceMm),
-        static_cast<unsigned>(measurement.rangeStatus),
-        static_cast<unsigned>(measurement.valid),
-        static_cast<unsigned long>(measurement.timestampMs));
+        static_cast<unsigned>(measurement->distanceMm),
+        static_cast<unsigned>(measurement->rangeStatus),
+        static_cast<unsigned>(measurement->valid),
+        static_cast<unsigned long>(measurement->timestamp.time_since_epoch().count()));
 }
 
 void App::onTick(const TIM_HandleTypeDef* htim)
 {
     if (htim == &m_tickTimer)
-        m_pendingTicks.fetch_add(1);
+        m_pendingTicks.fetch_add(1, std::memory_order_relaxed);
 }
 
 void App::pollButtons()
@@ -127,7 +130,8 @@ void App::pollAnimatedOutputOverride()
 
 void App::processPendingTicks()
 {
-    const uint32_t pendingTicks = std::min(m_pendingTicks.exchange(0), MAX_TICKS_PER_RUN);
+    const uint32_t pendingTicks =
+        std::min(m_pendingTicks.exchange(0, std::memory_order_relaxed), MAX_TICKS_PER_RUN);
     if (!m_ledsActive)
         return;
     for (uint32_t tick = 0; tick < pendingTicks; ++tick)
@@ -169,17 +173,13 @@ void App::animateLeds()
         m_led3.toggle();
     }
 
-    m_brightnessPercent = static_cast<int16_t>(m_brightnessPercent + m_fadeDirection * FADE_STEP);
-    if (m_brightnessPercent >= MAX_BRIGHTNESS_PERCENT)
-    {
-        m_brightnessPercent = MAX_BRIGHTNESS_PERCENT;
+    m_brightnessPercent =
+        std::clamp(static_cast<int16_t>(m_brightnessPercent + m_fadeDirection * FADE_STEP),
+                   int16_t{0}, MAX_BRIGHTNESS_PERCENT);
+    if (m_brightnessPercent == MAX_BRIGHTNESS_PERCENT)
         m_fadeDirection = -1;
-    }
-    else if (m_brightnessPercent <= 0)
-    {
-        m_brightnessPercent = 0;
+    else if (m_brightnessPercent == 0)
         m_fadeDirection = 1;
-    }
     m_led1.setBrightnessPercent(static_cast<uint8_t>(m_brightnessPercent));
 }
 
@@ -223,18 +223,18 @@ void App::processReceivedMessages()
 
 void App::logReceived(const CanMessage& msg) const
 {
-    char payload[3 * CanMessage::MAX_LEN + 1] = {};
+    std::array<char, 3 * CanMessage::MAX_LEN + 1> payload{};
     std::size_t offset = 0;
     for (uint8_t i = 0; i < msg.length; ++i)
     {
-        const int written = std::snprintf(payload + offset, sizeof(payload) - offset,
+        const int written = std::snprintf(payload.data() + offset, payload.size() - offset,
                                           (i == 0) ? "%02X" : " %02X", msg.data[i]);
         if (written <= 0)
             break;
         offset += static_cast<std::size_t>(written);
     }
     m_logger.printf("RX  id=0x%03lX  dlc=%u  data=[%s]\r\n", static_cast<unsigned long>(msg.id),
-                    msg.length, payload);
+                    msg.length, payload.data());
 }
 
 }

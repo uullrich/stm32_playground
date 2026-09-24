@@ -12,7 +12,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -65,7 +65,6 @@ add_library(playground_app OBJECT
     src/devices/button/Button.cpp
     src/drivers/logger/ILogger.cpp
     src/drivers/logger/UartLogger.cpp
-    src/protocols/custom_can/CustomCan.cpp
     src/drivers/digital_input/DigitalInput.cpp
     src/io/VirtualDigitalInput.cpp
     src/io/VirtualDigitalOutput.cpp
@@ -75,6 +74,7 @@ add_library(playground_app OBJECT
     src/io/IoRepositoryBuilder.cpp
     src/app/IoConnector.cpp
     src/io/CanDispatcher.cpp
+    src/util/SysTickClock.cpp
 )
 
 target_include_directories(playground_app PUBLIC

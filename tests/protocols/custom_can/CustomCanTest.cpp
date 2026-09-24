@@ -1,4 +1,5 @@
 #include "CustomCan.h"
+#include "CustomCanCodec.h"
 
 #include <gtest/gtest.h>
 
@@ -59,6 +60,70 @@ bool isValueResponseCommand(CustomCanCommand command)
 
 namespace uullrich::playground::test
 {
+
+constexpr CanMessage withLength(CanMessage message, uint8_t length)
+{
+    message.length = length;
+    return message;
+}
+
+constexpr CanMessage withCommand(CanMessage message, CustomCanCommand command)
+{
+    message.id = encodeCustomCanId(command, decodeCustomCanId(message.id).node);
+    return message;
+}
+
+static_assert(encodeCustomCanId(CustomCanCommand::SetRequest, 0x2A) == 0x12A);
+static_assert(encodeCustomCanId(CustomCanCommand::Heartbeat, 0xFF) == 0x4FF);
+static_assert(decodeCustomCanId(0x455).command == CustomCanCommand::ObserveResponse);
+static_assert(decodeCustomCanId(0x455).node == 0x55);
+
+constexpr CustomCanSetRequest STATIC_SET_REQUEST{
+    .io = {.type = CustomCanIoType::PwmOutput, .index = 3}, .value = 0x12345678};
+constexpr CanMessage STATIC_SET_REQUEST_FRAME = encodeSetRequest(0x21, STATIC_SET_REQUEST);
+constexpr auto STATIC_DECODED_SET_REQUEST = decodeSetRequest(STATIC_SET_REQUEST_FRAME);
+static_assert(STATIC_SET_REQUEST_FRAME.length == CUSTOM_CAN_SET_REQUEST_LENGTH);
+static_assert(STATIC_SET_REQUEST_FRAME.data[2] == 0x78 && STATIC_SET_REQUEST_FRAME.data[5] == 0x12);
+static_assert(STATIC_DECODED_SET_REQUEST.has_value());
+static_assert(STATIC_DECODED_SET_REQUEST->io.type == CustomCanIoType::PwmOutput);
+static_assert(STATIC_DECODED_SET_REQUEST->io.index == 3);
+static_assert(STATIC_DECODED_SET_REQUEST->value == 0x12345678);
+static_assert(!decodeSetRequest(withLength(STATIC_SET_REQUEST_FRAME, 5)).has_value());
+static_assert(!decodeSetRequest(withCommand(STATIC_SET_REQUEST_FRAME, CustomCanCommand::GetRequest))
+                   .has_value());
+
+constexpr CustomCanValueResponse STATIC_VALUE_RESPONSE{
+    .status = CustomCanStatus::ValueOutOfRange,
+    .io = {.type = CustomCanIoType::DigitalOutput, .index = 9},
+    .value = 0xA1B2C3D4};
+constexpr CanMessage STATIC_VALUE_RESPONSE_FRAME = encodeGetResponse(0x0C, STATIC_VALUE_RESPONSE);
+constexpr auto STATIC_DECODED_VALUE_RESPONSE = decodeValueResponse(STATIC_VALUE_RESPONSE_FRAME);
+static_assert(STATIC_VALUE_RESPONSE_FRAME.length == CUSTOM_CAN_VALUE_RESPONSE_LENGTH);
+static_assert(STATIC_DECODED_VALUE_RESPONSE.has_value());
+static_assert(STATIC_DECODED_VALUE_RESPONSE->status == CustomCanStatus::ValueOutOfRange);
+static_assert(STATIC_DECODED_VALUE_RESPONSE->io.type == CustomCanIoType::DigitalOutput);
+static_assert(STATIC_DECODED_VALUE_RESPONSE->io.index == 9);
+static_assert(STATIC_DECODED_VALUE_RESPONSE->value == 0xA1B2C3D4);
+static_assert(!decodeValueResponse(withLength(STATIC_VALUE_RESPONSE_FRAME, 6)).has_value());
+static_assert(
+    !decodeValueResponse(withCommand(STATIC_VALUE_RESPONSE_FRAME, CustomCanCommand::SetRequest))
+         .has_value());
+
+constexpr CustomCanObserveStart STATIC_OBSERVE_START{
+    .io = {.type = CustomCanIoType::AdcInput, .index = 1}, .periodMs = 0x01F4, .hysteresis = 0xABCD};
+constexpr auto STATIC_DECODED_OBSERVE_START =
+    decodeObserveStart(encodeObserveStart(0x7F, STATIC_OBSERVE_START));
+static_assert(STATIC_DECODED_OBSERVE_START.has_value());
+static_assert(STATIC_DECODED_OBSERVE_START->io.index == 1);
+static_assert(STATIC_DECODED_OBSERVE_START->periodMs == 0x01F4);
+static_assert(STATIC_DECODED_OBSERVE_START->hysteresis == 0xABCD);
+
+constexpr CanMessage STATIC_ERROR_FRAME = encodeError(0x33, {.code = CustomCanStatus::BusError});
+constexpr auto STATIC_DECODED_ERROR = decodeError(STATIC_ERROR_FRAME);
+static_assert(STATIC_DECODED_ERROR.has_value());
+static_assert(STATIC_DECODED_ERROR->code == CustomCanStatus::BusError);
+static_assert(!decodeError(withLength(STATIC_ERROR_FRAME, 2)).has_value());
+static_assert(!decodeError(withCommand(STATIC_ERROR_FRAME, CustomCanCommand::Event)).has_value());
 
 TEST(CustomCanIdTest, EncodeDecodeRoundTrip)
 {

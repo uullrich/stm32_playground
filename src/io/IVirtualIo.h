@@ -4,9 +4,13 @@
 #include "IoType.h"
 
 #include <cstdint>
+#include <expected>
 
 namespace uullrich::playground
 {
+
+using IoReadResult = std::expected<uint32_t, IoStatus>;
+using IoWriteResult = std::expected<void, IoStatus>;
 
 class IVirtualIo
 {
@@ -14,8 +18,8 @@ class IVirtualIo
     virtual ~IVirtualIo() = default;
     [[nodiscard]] virtual IoType ioType() const = 0;
     [[nodiscard]] virtual uint8_t ioIndex() const = 0;
-    [[nodiscard]] virtual IoStatus read(uint32_t& value) const = 0;
-    [[nodiscard]] virtual IoStatus write(uint32_t value) = 0;
+    [[nodiscard]] virtual IoReadResult read() const = 0;
+    [[nodiscard]] virtual IoWriteResult write(uint32_t value) = 0;
 };
 
 }

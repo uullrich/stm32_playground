@@ -6,15 +6,18 @@
 namespace uullrich::playground
 {
 
-class VirtualDigitalOutput : public IVirtualIo
+class VirtualDigitalOutput final : public IVirtualIo
 {
   public:
-    VirtualDigitalOutput(IDigitalOutput& output, uint8_t index);
+    explicit VirtualDigitalOutput(IDigitalOutput& output, uint8_t index);
+
+    VirtualDigitalOutput(const VirtualDigitalOutput&) = delete;
+    VirtualDigitalOutput& operator=(const VirtualDigitalOutput&) = delete;
 
     [[nodiscard]] IoType ioType() const override;
     [[nodiscard]] uint8_t ioIndex() const override;
-    [[nodiscard]] IoStatus read(uint32_t& value) const override;
-    [[nodiscard]] IoStatus write(uint32_t value) override;
+    [[nodiscard]] IoReadResult read() const override;
+    [[nodiscard]] IoWriteResult write(uint32_t value) override;
 
   private:
     IDigitalOutput& m_output;

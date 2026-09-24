@@ -6,10 +6,13 @@
 namespace uullrich::playground
 {
 
-class IoRepositoryBuilder
+class IoRepositoryBuilder final
 {
   public:
     explicit IoRepositoryBuilder(IoRepository& repository);
+
+    IoRepositoryBuilder(const IoRepositoryBuilder&) = delete;
+    IoRepositoryBuilder& operator=(const IoRepositoryBuilder&) = delete;
 
     IoRepositoryBuilder& add(IVirtualIo& io);
 
@@ -17,7 +20,6 @@ class IoRepositoryBuilder
     [[nodiscard]] bool isDuplicate(const IVirtualIo& io) const;
 
     IoRepository& m_repository;
-    std::size_t m_count{0};
 };
 
 }

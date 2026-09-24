@@ -1,5 +1,5 @@
 #include "Vl53l1xPlatform.h"
-#include "stm32f7xx_hal.h"
+#include "SysTickClock.h"
 
 extern "C"
 {
@@ -7,16 +7,37 @@ extern "C"
 }
 
 #include <algorithm>
+#include <array>
+#include <chrono>
+#include <concepts>
+#include <cstddef>
+#include <span>
 
 namespace
 {
 // The ULD passes only a numeric device address to its C platform callbacks.
 uullrich::playground::Vl53l1xPlatform* g_platform = nullptr;
-constexpr uint32_t TRANSFER_TIMEOUT_MS = 10;
-constexpr uint32_t READY_TIMEOUT_MS = 500;
-constexpr int32_t READY_POLL_INTERVAL_MS = 1;
+constexpr std::chrono::milliseconds TRANSFER_TIMEOUT{10};
+constexpr std::chrono::milliseconds READY_TIMEOUT{500};
+constexpr std::chrono::milliseconds READY_POLL_INTERVAL{1};
 constexpr int8_t PLATFORM_OK = 0;
 constexpr int8_t PLATFORM_ERROR = -1;
+
+template <std::unsigned_integral T> std::array<uint8_t, sizeof(T)> toBigEndian(T value)
+{
+    std::array<uint8_t, sizeof(T)> bytes{};
+    for (std::size_t i = 0; i < bytes.size(); ++i)
+        bytes[i] = static_cast<uint8_t>(value >> (8 * (bytes.size() - 1 - i)));
+    return bytes;
+}
+
+template <std::unsigned_integral T> T fromBigEndian(std::span<const uint8_t, sizeof(T)> bytes)
+{
+    T value = 0;
+    for (const uint8_t byte : bytes)
+        value = static_cast<T>((value << 8) | byte);
+    return value;
+}
 }
 
 namespace uullrich::playground
@@ -40,11 +61,11 @@ bool Vl53l1xPlatform::bind()
     return true;
 }
 
-void Vl53l1xPlatform::beginOperation(uint32_t budgetMs)
+void Vl53l1xPlatform::beginOperation(std::chrono::milliseconds budget)
 {
     m_status = II2cBus::Status::Ok;
-    m_startedMs = HAL_GetTick();
-    m_budgetMs = budgetMs;
+    m_started = SysTickClock::now();
+    m_budget = budget;
 }
 
 II2cBus::Status Vl53l1xPlatform::status() const
@@ -52,63 +73,64 @@ II2cBus::Status Vl53l1xPlatform::status() const
     return m_status;
 }
 
-uint32_t Vl53l1xPlatform::remainingMs()
+std::chrono::milliseconds Vl53l1xPlatform::remainingBudget()
 {
     if (m_status != II2cBus::Status::Ok)
-        return 0;
-    const uint32_t elapsedMs = HAL_GetTick() - m_startedMs;
-    if (elapsedMs >= m_budgetMs)
+        return std::chrono::milliseconds::zero();
+    const auto elapsed = SysTickClock::now() - m_started;
+    if (elapsed >= m_budget)
     {
         timeout();
-        return 0;
+        return std::chrono::milliseconds::zero();
     }
-    return m_budgetMs - elapsedMs;
+    return m_budget - elapsed;
 }
 
 int8_t Vl53l1xPlatform::read(uint16_t address, uint16_t index, std::span<uint8_t> data)
 {
     // Some ULD paths inspect read outputs even after an I2C failure.
     std::fill(data.begin(), data.end(), 0);
-    const uint32_t remaining = remainingMs();
-    if (remaining == 0)
+    const auto available = remainingBudget();
+    if (available == std::chrono::milliseconds::zero())
         return PLATFORM_ERROR;
     if (address != VL53L1X_I2C_ADDRESS || data.empty() || data.size() > UINT16_MAX)
         m_status = II2cBus::Status::InvalidArgument;
     else
         m_status = m_bus.read(static_cast<uint8_t>(address), index, data,
-                              std::min(remaining, TRANSFER_TIMEOUT_MS));
+                              std::min(available, TRANSFER_TIMEOUT));
     return m_status == II2cBus::Status::Ok ? PLATFORM_OK : PLATFORM_ERROR;
 }
 
 int8_t Vl53l1xPlatform::write(uint16_t address, uint16_t index, std::span<const uint8_t> data)
 {
-    const uint32_t remaining = remainingMs();
-    if (remaining == 0)
+    const auto available = remainingBudget();
+    if (available == std::chrono::milliseconds::zero())
         return PLATFORM_ERROR;
     if (address != VL53L1X_I2C_ADDRESS || data.empty() || data.size() > UINT16_MAX)
         m_status = II2cBus::Status::InvalidArgument;
     else
         m_status = m_bus.write(static_cast<uint8_t>(address), index, data,
-                               std::min(remaining, TRANSFER_TIMEOUT_MS));
+                               std::min(available, TRANSFER_TIMEOUT));
     return m_status == II2cBus::Status::Ok ? PLATFORM_OK : PLATFORM_ERROR;
 }
 
 int8_t Vl53l1xPlatform::waitMs(int32_t durationMs)
 {
-    const uint32_t remaining = remainingMs();
-    if (remaining == 0)
+    const auto available = remainingBudget();
+    if (available == std::chrono::milliseconds::zero())
         return PLATFORM_ERROR;
     if (durationMs < 0)
     {
         m_status = II2cBus::Status::InvalidArgument;
         return PLATFORM_ERROR;
     }
-    if (static_cast<uint32_t>(durationMs) >= remaining)
+    const std::chrono::milliseconds duration{durationMs};
+    if (duration >= available)
     {
         timeout();
         return PLATFORM_ERROR;
     }
-    HAL_Delay(static_cast<uint32_t>(durationMs));
+    delay(duration);
     return PLATFORM_OK;
 }
 
@@ -149,15 +171,14 @@ int8_t VL53L1_WrByte(uint16_t dev, uint16_t index, uint8_t data)
 
 int8_t VL53L1_WrWord(uint16_t dev, uint16_t index, uint16_t data)
 {
-    uint8_t bytes[] = {static_cast<uint8_t>(data >> 8), static_cast<uint8_t>(data)};
-    return VL53L1_WriteMulti(dev, index, bytes, sizeof(bytes));
+    auto bytes = toBigEndian(data);
+    return VL53L1_WriteMulti(dev, index, bytes.data(), bytes.size());
 }
 
 int8_t VL53L1_WrDWord(uint16_t dev, uint16_t index, uint32_t data)
 {
-    uint8_t bytes[] = {static_cast<uint8_t>(data >> 24), static_cast<uint8_t>(data >> 16),
-                       static_cast<uint8_t>(data >> 8), static_cast<uint8_t>(data)};
-    return VL53L1_WriteMulti(dev, index, bytes, sizeof(bytes));
+    auto bytes = toBigEndian(data);
+    return VL53L1_WriteMulti(dev, index, bytes.data(), bytes.size());
 }
 
 int8_t VL53L1_RdByte(uint16_t dev, uint16_t index, uint8_t* data)
@@ -169,9 +190,9 @@ int8_t VL53L1_RdWord(uint16_t dev, uint16_t index, uint16_t* data)
 {
     if (data == nullptr)
         return PLATFORM_ERROR;
-    uint8_t bytes[2]{};
-    const int8_t status = VL53L1_ReadMulti(dev, index, bytes, sizeof(bytes));
-    *data = static_cast<uint16_t>((bytes[0] << 8) | bytes[1]);
+    std::array<uint8_t, sizeof(uint16_t)> bytes{};
+    const int8_t status = VL53L1_ReadMulti(dev, index, bytes.data(), bytes.size());
+    *data = fromBigEndian<uint16_t>(bytes);
     return status;
 }
 
@@ -179,11 +200,9 @@ int8_t VL53L1_RdDWord(uint16_t dev, uint16_t index, uint32_t* data)
 {
     if (data == nullptr)
         return PLATFORM_ERROR;
-    uint8_t bytes[4]{};
-    const int8_t status = VL53L1_ReadMulti(dev, index, bytes, sizeof(bytes));
-    *data = (static_cast<uint32_t>(bytes[0]) << 24) |
-            (static_cast<uint32_t>(bytes[1]) << 16) |
-            (static_cast<uint32_t>(bytes[2]) << 8) | bytes[3];
+    std::array<uint8_t, sizeof(uint32_t)> bytes{};
+    const int8_t status = VL53L1_ReadMulti(dev, index, bytes.data(), bytes.size());
+    *data = fromBigEndian<uint32_t>(bytes);
     return status;
 }
 
@@ -198,7 +217,8 @@ int8_t VL53L1_WaitForDataReady(uint16_t dev)
 {
     if (g_platform == nullptr || dev != uullrich::playground::VL53L1X_I2C_ADDRESS)
         return PLATFORM_ERROR;
-    const uint32_t startedMs = HAL_GetTick();
+    using uullrich::playground::SysTickClock;
+    const auto started = SysTickClock::now();
     for (;;)
     {
         uint8_t ready = 0;
@@ -206,12 +226,12 @@ int8_t VL53L1_WaitForDataReady(uint16_t dev)
             return PLATFORM_ERROR;
         if (ready != 0)
             return PLATFORM_OK;
-        if (HAL_GetTick() - startedMs >= READY_TIMEOUT_MS)
+        if (SysTickClock::now() - started >= READY_TIMEOUT)
         {
             g_platform->timeout();
             return PLATFORM_ERROR;
         }
-        if (VL53L1_WaitMs(dev, READY_POLL_INTERVAL_MS) != PLATFORM_OK)
+        if (VL53L1_WaitMs(dev, static_cast<int32_t>(READY_POLL_INTERVAL.count())) != PLATFORM_OK)
             return PLATFORM_ERROR;
     }
 }

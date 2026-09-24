@@ -13,9 +13,11 @@
 #include "IoConnector.h"
 #include "I2cBus.h"
 #include "Vl53l1x.h"
+#include "SysTickClock.h"
 #include "stm32f7xx_hal.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 
 namespace uullrich::playground
@@ -24,8 +26,8 @@ namespace uullrich::playground
 class App final
 {
   public:
-    App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
-        const ILogger& logger, ADC_HandleTypeDef& hadc, I2C_HandleTypeDef& hi2c);
+    explicit App(CAN_HandleTypeDef& hcan, TIM_HandleTypeDef& htimPwm, TIM_HandleTypeDef& htimTick,
+                 const ILogger& logger, ADC_HandleTypeDef& hadc, I2C_HandleTypeDef& hi2c);
 
     App(const App&) = delete;
     App& operator=(const App&) = delete;
@@ -58,11 +60,11 @@ class App final
     static constexpr uint32_t MAX_TICKS_PER_RUN = 10;
     static constexpr uint32_t LD2_TICK_DIVIDER = 3;
     static constexpr uint32_t LD3_TICK_DIVIDER = 7;
-    static constexpr uint32_t BUTTON_DEBOUNCE_MS = 150;
-    static constexpr uint32_t HEARTBEAT_PERIOD_MS = 500;
-    static constexpr uint32_t LED_MEASURE_PERIOD_MS = 1000;
+    static constexpr std::chrono::milliseconds BUTTON_DEBOUNCE{150};
+    static constexpr std::chrono::milliseconds HEARTBEAT_PERIOD{500};
+    static constexpr std::chrono::milliseconds LED_MEASURE_PERIOD{1000};
     static constexpr uint32_t SERIES_RESISTOR_OHMS = 220;
-    static constexpr uint32_t DISTANCE_POLL_PERIOD_MS = 10;
+    static constexpr std::chrono::milliseconds DISTANCE_POLL_PERIOD{10};
 
     DigitalOutput m_ld2Output;
     DigitalOutput m_ld3Output;
@@ -91,9 +93,9 @@ class App final
     uint32_t m_led3TickCounter{0};
     int16_t m_brightnessPercent{0};
     int8_t m_fadeDirection{1};
-    uint32_t m_lastHeartbeatTick{0};
-    uint32_t m_lastLedMeasureTick{0};
-    uint32_t m_lastDistancePollTick{0};
+    SysTickClock::time_point m_lastHeartbeat{};
+    SysTickClock::time_point m_lastLedMeasure{};
+    SysTickClock::time_point m_lastDistancePoll{};
     bool m_distanceActive{false};
     IDistanceSensor::Status m_lastDistanceError{IDistanceSensor::Status::Ok};
 };

@@ -1,5 +1,8 @@
 #include "IoRepository.h"
 
+#include <algorithm>
+#include <span>
+
 namespace uullrich::playground
 {
 
@@ -13,22 +16,21 @@ bool IoRepository::add(IVirtualIo& io)
 
 IVirtualIo* IoRepository::find(IoType type, uint8_t index)
 {
-    for (std::size_t i = 0; i < m_count; ++i)
-    {
-        if (m_ios[i]->ioType() == type && m_ios[i]->ioIndex() == index)
-            return m_ios[i];
-    }
-    return nullptr;
+    return lookup(type, index);
 }
 
 const IVirtualIo* IoRepository::find(IoType type, uint8_t index) const
 {
-    for (std::size_t i = 0; i < m_count; ++i)
-    {
-        if (m_ios[i]->ioType() == type && m_ios[i]->ioIndex() == index)
-            return m_ios[i];
-    }
-    return nullptr;
+    return lookup(type, index);
+}
+
+IVirtualIo* IoRepository::lookup(IoType type, uint8_t index) const
+{
+    const auto registered = std::span{m_ios}.first(m_count);
+    const auto found = std::ranges::find_if(registered, [type, index](const IVirtualIo* io) {
+        return io->ioType() == type && io->ioIndex() == index;
+    });
+    return found != registered.end() ? *found : nullptr;
 }
 
 }

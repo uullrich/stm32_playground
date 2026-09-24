@@ -9,7 +9,7 @@
 namespace uullrich::playground
 {
 
-class CanBus : public ICanBus
+class CanBus final : public ICanBus
 {
   public:
     static constexpr std::size_t QUEUE_SIZE = 16;

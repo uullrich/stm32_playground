@@ -8,10 +8,10 @@
 namespace uullrich::playground
 {
 
-class DigitalOutput : public IDigitalOutput
+class DigitalOutput final : public IDigitalOutput
 {
   public:
-    DigitalOutput(GPIO_TypeDef& port, uint16_t pin);
+    explicit DigitalOutput(GPIO_TypeDef& port, uint16_t pin);
 
     DigitalOutput(const DigitalOutput&) = delete;
     DigitalOutput& operator=(const DigitalOutput&) = delete;

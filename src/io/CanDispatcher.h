@@ -9,11 +9,14 @@
 namespace uullrich::playground
 {
 
-class CanDispatcher
+class CanDispatcher final
 {
   public:
-    CanDispatcher(ICanBus& canBus, IIoRepository& repository, IIoWriteListener& writeListener,
-                  CustomCanNodeId nodeId);
+    explicit CanDispatcher(ICanBus& canBus, IIoRepository& repository,
+                           IIoWriteListener& writeListener, CustomCanNodeId nodeId);
+
+    CanDispatcher(const CanDispatcher&) = delete;
+    CanDispatcher& operator=(const CanDispatcher&) = delete;
 
     [[nodiscard]] bool dispatch(const CanMessage& message);
 

@@ -1,6 +1,6 @@
 # stm32_playground
 
-STM32 firmware playground built around modern C++20 wrappers over the STMicro HAL.
+STM32 firmware playground built around modern C++23 wrappers over the STMicro HAL.
 Drives the onboard LEDs from a timer ISR, debounces the USER button through EXTI,
 toggles an external LED (D6 / PE9) from an external pushbutton (D8 / PF12) over
 EXTI12, sends periodic CAN frames in loopback mode, prints received frames over
@@ -53,7 +53,7 @@ see [CAN protocol](#can-protocol)).
 - **CAN1** — 500 kbit/s, internal loopback. Bit timing `Prescaler = 6, BS1 = 11 TQ, BS2 = 4 TQ` (75 % sample point) against 48 MHz APB1. Accept-all software filter on FIFO 0.
 - **ADC1** — 12-bit, software-triggered single conversion, 3-cycle sampling, clock div/4 (24 MHz). Two channels read sequentially by reconfiguring the sequencer before each read (no DMA, no scan mode). Circuit: `3.3V → potentiometer → A0 → 220 Ω → A1 → LED → GND`. LED voltage = V_A1; LED current = (V_A0 − V_A1) / 220 Ω. Sampled every 1 s in the main loop.
 - **I2C1** — 100 kHz, PB8/PB9 (AF4 open-drain), 16 MHz HSI kernel clock, `TIMINGR = 0x00303D5B`. Analog filter enabled; digital filter and GPIO pull-ups disabled.
-- **EXTI13** — rising-edge interrupt on the USER button (PC13); debounce handled in software (150 ms) using `HAL_GetTick()`.
+- **EXTI13** — rising-edge interrupt on the USER button (PC13); debounce handled in software (150 ms) using `SysTickClock` (a `std::chrono` clock over `HAL_GetTick()`).
 - **EXTI12** — rising-edge interrupt on the D8 external button (PF12); same 150 ms software debounce. Press toggles the D6 external LED (PE9). D7/PF13 was avoided because it shares EXTI13 with the USER button.
 
 ---
@@ -66,7 +66,7 @@ stm32_playground/
 │   ├── Inc/  main.h, stm32f7xx_hal_conf.h, stm32f7xx_it.h
 │   └── Src/  main.c, stm32f7xx_*.c, sys{calls,mem}.c
 ├── Drivers/                    ← STMicro HAL (CubeMX-managed)
-├── src/                        ← all user C++20 code
+├── src/                        ← all user C++23 code
 │   ├── app/
 │   │   ├── App.h / .cpp                   orchestrator
 │   │   └── AppFacade.h / .cpp             C ABI bridge into main.c
@@ -80,9 +80,10 @@ stm32_playground/
 │   │   ├── button/   Button / IButton (debounced EXTI input)
 │   │   └── led/      DigitalLed / DimmableLed (+ ILed, IDimmableLed)
 │   ├── protocols/
-│   │   └── custom_can/  CustomCan (protocol enums, structs, encoder/decoder)
+│   │   └── custom_can/  CustomCan.h (enums, structs, lengths), CustomCanCodec.h (header-only constexpr encoder/decoder)
 │   └── util/
-│       └── RingBuffer.h                   lock-free SPSC ring buffer
+│       ├── RingBuffer.h                   lock-free SPSC ring buffer
+│       └── SysTickClock.h / .cpp          std::chrono clock over HAL_GetTick (1 ms, wraps)
 ├── tests/                      ← host-compiled GoogleTest project
 │   ├── CMakeLists.txt
 │   ├── support/                           minimal HAL shim for host build
@@ -159,7 +160,7 @@ Two routing patterns are used:
 
 ### Design choices
 
-- **C++20 with `-fno-exceptions -fno-rtti -fno-threadsafe-statics`** — standard embedded defaults: saves Flash, deterministic, no implicit synchronization on function-local statics.
+- **C++23 with `-fno-exceptions -fno-rtti -fno-threadsafe-statics`** — standard embedded defaults: saves Flash, deterministic, no implicit synchronization on function-local statics.
 - **No dynamic allocation.** Every object lives in static or stack storage. The `App` and `UartLogger` singletons are constructed via `std::optional::emplace` once HAL handles are available; that placement-new happens in BSS-resident storage.
 - **TX path is queued, not direct.** `CanBus::send()` always enqueues; the queue is drained into the three hardware mailboxes opportunistically, preserving FIFO order. The send API is non-blocking and never fails on transient mailbox-busy. The TX-complete ISR also calls drain to keep the mailboxes fed.
 - **RX path decouples ISR from main loop.** The RX ISR reads frames out of the HAL FIFO and pushes onto the software queue with no further work; `app_run()` drains them when it gets CPU.
@@ -416,7 +417,7 @@ STM32_Programmer_CLI -c port=SWD -d build/Debug/stm32_playground.elf -rst
 
 ### Unit tests
 
-Standalone host-compiled CMake project; uses the system C++20 compiler. GoogleTest v1.15.2 is fetched via `FetchContent` in `tests/deps/googletest/` (sources land in `tests/deps/googletest/googletest-src/`, gitignored).
+Standalone host-compiled CMake project; uses the system C++23 compiler. GoogleTest v1.15.2 is fetched via `FetchContent` in `tests/deps/googletest/` (sources land in `tests/deps/googletest/googletest-src/`, gitignored).
 
 ```bash
 cmake -S tests -B build/tests -G Ninja
@@ -424,7 +425,7 @@ cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
 ```
 
-Tests cover `RingBuffer`, `CanMessage`, `ILogger::printf`, the `CustomCan` codec, `CanDispatcher`
+Tests cover `RingBuffer`, `SysTickClock` (tick wraparound), `CanMessage`, `ILogger::printf`, the `CustomCan` codec, `CanDispatcher`
 request handling, and sensor initialization, measurement validity, errors, and automatic
 recovery using a simulated I²C bus.
 Thin HAL wrappers require hardware checks.
@@ -463,8 +464,10 @@ VL53L1X: distance=523 mm status=0 valid=1 tick=204 ms
   when readings return. `MEASUREMENT_TIMEOUT` means no new data for 500 ms; `TIMEOUT` is a
   transfer/operation timeout. For `BUS_ERROR`, check wiring and power.
 - After failed initialization, fix the cause and reset the board.
-- API: call `IDistanceSensor::init()`, then `poll(Measurement&)`; consume samples only
-  on `Ok`. Keep polling after runtime errors so recovery can proceed.
+- API: call `IDistanceSensor::init()`, then `poll()`, which returns
+  `std::expected<Measurement, Status>`; a value is present only for a fresh sample (check
+  `Measurement::valid` for the optical range status). `NotReady` and runtime errors arrive as
+  the error. Keep polling after runtime errors so recovery can proceed.
 - Peripheral changes go through `Playground2.ioc` and CubeMX. Keep I²C1's **16 MHz HSI**
   clock paired with `TIMINGR = 0x00303D5B` for nominal 100 kHz.
 

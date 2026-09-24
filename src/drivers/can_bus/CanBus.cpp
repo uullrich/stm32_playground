@@ -1,7 +1,8 @@
 #include "CanBus.h"
 
+#include <algorithm>
 #include <array>
-#include <cstring>
+#include <span>
 #include <tuple>
 
 namespace
@@ -22,14 +23,9 @@ void registerBus(uullrich::playground::CanBus& bus)
 
 uullrich::playground::CanBus* findBus(const CAN_HandleTypeDef* hcan)
 {
-    for (std::size_t i = 0; i < g_registryCount; ++i)
-    {
-        if (g_registry[i] && g_registry[i]->halHandle() == hcan)
-        {
-            return g_registry[i];
-        }
-    }
-    return nullptr;
+    const auto registered = std::span{g_registry}.first(g_registryCount);
+    const auto found = std::ranges::find(registered, hcan, &uullrich::playground::CanBus::halHandle);
+    return found != registered.end() ? *found : nullptr;
 }
 }
 

@@ -3,7 +3,6 @@
 #include "CanMessage.h"
 
 #include <cstdint>
-#include <optional>
 
 namespace uullrich::playground
 {
@@ -48,79 +47,62 @@ constexpr CustomCanNodeId CUSTOM_CAN_BROADCAST_NODE = 0;
 constexpr CustomCanNodeId CUSTOM_CAN_MAX_NODE_ID = 0x7F;
 constexpr uint8_t CUSTOM_CAN_INVALID_IO_FIELD = 0xFF;
 
+constexpr uint8_t CUSTOM_CAN_SET_REQUEST_LENGTH = 6;
+constexpr uint8_t CUSTOM_CAN_GET_REQUEST_LENGTH = 2;
+constexpr uint8_t CUSTOM_CAN_VALUE_RESPONSE_LENGTH = 7;
+constexpr uint8_t CUSTOM_CAN_OBSERVE_START_LENGTH = 6;
+constexpr uint8_t CUSTOM_CAN_OBSERVE_STOP_LENGTH = 2;
+constexpr uint8_t CUSTOM_CAN_ERROR_LENGTH = 1;
+constexpr uint8_t CUSTOM_CAN_HEARTBEAT_LENGTH = 0;
+
 struct CustomCanIoAddress
 {
-    CustomCanIoType type;
-    uint8_t index;
+    CustomCanIoType type{};
+    uint8_t index{};
 };
 
 struct CustomCanFrameId
 {
-    CustomCanCommand command;
-    CustomCanNodeId node;
+    CustomCanCommand command{};
+    CustomCanNodeId node{};
 };
 
 struct CustomCanSetRequest
 {
-    CustomCanIoAddress io;
-    uint32_t value;
+    CustomCanIoAddress io{};
+    uint32_t value{};
 };
 
 struct CustomCanGetRequest
 {
-    CustomCanIoAddress io;
+    CustomCanIoAddress io{};
 };
 
 struct CustomCanValueResponse
 {
-    CustomCanStatus status;
-    CustomCanIoAddress io;
-    uint32_t value;
+    CustomCanStatus status{};
+    CustomCanIoAddress io{};
+    uint32_t value{};
 };
 
 struct CustomCanObserveStart
 {
-    CustomCanIoAddress io;
-    uint16_t periodMs;
-    uint16_t hysteresis;
+    CustomCanIoAddress io{};
+    uint16_t periodMs{};
+    uint16_t hysteresis{};
 };
 
 struct CustomCanObserveStop
 {
-    CustomCanIoAddress io;
+    CustomCanIoAddress io{};
 };
 
 struct CustomCanError
 {
-    CustomCanStatus code;
+    CustomCanStatus code{};
 };
 
-[[nodiscard]] uint32_t encodeCustomCanId(CustomCanCommand command, CustomCanNodeId node);
-[[nodiscard]] CustomCanFrameId decodeCustomCanId(uint32_t id);
-
-[[nodiscard]] CanMessage encodeSetRequest(CustomCanNodeId target,
-                                          const CustomCanSetRequest& request);
-[[nodiscard]] CanMessage encodeSetResponse(CustomCanNodeId sender,
-                                           const CustomCanValueResponse& response);
-[[nodiscard]] CanMessage encodeGetRequest(CustomCanNodeId target,
-                                          const CustomCanGetRequest& request);
-[[nodiscard]] CanMessage encodeGetResponse(CustomCanNodeId sender,
-                                           const CustomCanValueResponse& response);
-[[nodiscard]] CanMessage encodeEvent(CustomCanNodeId sender, const CustomCanValueResponse& event);
-[[nodiscard]] CanMessage encodeObserveStart(CustomCanNodeId target,
-                                            const CustomCanObserveStart& request);
-[[nodiscard]] CanMessage encodeObserveStop(CustomCanNodeId target,
-                                           const CustomCanObserveStop& request);
-[[nodiscard]] CanMessage encodeObserveResponse(CustomCanNodeId sender,
-                                               const CustomCanValueResponse& response);
-[[nodiscard]] CanMessage encodeError(CustomCanNodeId sender, const CustomCanError& error);
-[[nodiscard]] CanMessage encodeHeartbeat(CustomCanNodeId sender);
-
-[[nodiscard]] std::optional<CustomCanSetRequest> decodeSetRequest(const CanMessage& message);
-[[nodiscard]] std::optional<CustomCanGetRequest> decodeGetRequest(const CanMessage& message);
-[[nodiscard]] std::optional<CustomCanValueResponse> decodeValueResponse(const CanMessage& message);
-[[nodiscard]] std::optional<CustomCanObserveStart> decodeObserveStart(const CanMessage& message);
-[[nodiscard]] std::optional<CustomCanObserveStop> decodeObserveStop(const CanMessage& message);
-[[nodiscard]] std::optional<CustomCanError> decodeError(const CanMessage& message);
-
 }
+
+// Kept last so existing includers of CustomCan.h still see the codec; #pragma once breaks the cycle.
+#include "CustomCanCodec.h"

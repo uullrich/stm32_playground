@@ -6,7 +6,7 @@
 namespace uullrich::playground
 {
 
-class DigitalLed : public ILed
+class DigitalLed final : public ILed
 {
   public:
     explicit DigitalLed(IDigitalOutput& output);

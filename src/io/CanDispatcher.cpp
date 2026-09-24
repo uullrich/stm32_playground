@@ -28,8 +28,6 @@ uullrich::playground::CustomCanStatus toCanStatus(uullrich::playground::IoStatus
     using enum uullrich::playground::IoStatus;
     switch (status)
     {
-    case Ok:
-        return uullrich::playground::CustomCanStatus::Ok;
     case ValueOutOfRange:
         return uullrich::playground::CustomCanStatus::ValueOutOfRange;
     case NotSupported:
@@ -40,6 +38,14 @@ uullrich::playground::CustomCanStatus toCanStatus(uullrich::playground::IoStatus
     return uullrich::playground::CustomCanStatus::BusError;
 }
 
+uullrich::playground::CustomCanValueResponse toValueResponse(
+    const uullrich::playground::IoReadResult& result, uullrich::playground::CustomCanIoAddress io)
+{
+    if (!result)
+        return {.status = toCanStatus(result.error()), .io = io, .value = 0};
+    return {.status = uullrich::playground::CustomCanStatus::Ok, .io = io, .value = *result};
+}
+
 // Remote frames carry no data bytes on the bus, so nothing can be echoed from them.
 uullrich::playground::CustomCanIoAddress malformedIoAddress(
     const uullrich::playground::CanMessage& message)
@@ -48,7 +54,7 @@ uullrich::playground::CustomCanIoAddress malformedIoAddress(
     const uint8_t available = message.remote ? uint8_t{0} : message.length;
     const uint8_t type = (available > 0) ? message.data[0] : CUSTOM_CAN_INVALID_IO_FIELD;
     const uint8_t index = (available > 1) ? message.data[1] : CUSTOM_CAN_INVALID_IO_FIELD;
-    return {static_cast<uullrich::playground::CustomCanIoType>(type), index};
+    return {.type = static_cast<uullrich::playground::CustomCanIoType>(type), .index = index};
 }
 
 }
@@ -98,8 +104,9 @@ void CanDispatcher::handleSetRequest(const CanMessage& message, const CustomCanF
     {
         if (frameId.node != CUSTOM_CAN_BROADCAST_NODE)
         {
-            const CustomCanValueResponse response{CustomCanStatus::MalformedPayload,
-                                                  malformedIoAddress(message), 0};
+            const CustomCanValueResponse response{.status = CustomCanStatus::MalformedPayload,
+                                                  .io = malformedIoAddress(message),
+                                                  .value = 0};
             std::ignore = m_canBus.send(encodeSetResponse(m_nodeId, response));
         }
         return;
@@ -111,7 +118,8 @@ void CanDispatcher::handleSetRequest(const CanMessage& message, const CustomCanF
     {
         if (frameId.node != CUSTOM_CAN_BROADCAST_NODE)
         {
-            const CustomCanValueResponse response{CustomCanStatus::UnknownIoType, request.io, 0};
+            const CustomCanValueResponse response{
+                .status = CustomCanStatus::UnknownIoType, .io = request.io, .value = 0};
             std::ignore = m_canBus.send(encodeSetResponse(m_nodeId, response));
         }
         return;
@@ -122,18 +130,20 @@ void CanDispatcher::handleSetRequest(const CanMessage& message, const CustomCanF
     {
         if (frameId.node != CUSTOM_CAN_BROADCAST_NODE)
         {
-            const CustomCanValueResponse response{CustomCanStatus::UnknownIoIndex, request.io, 0};
+            const CustomCanValueResponse response{
+                .status = CustomCanStatus::UnknownIoIndex, .io = request.io, .value = 0};
             std::ignore = m_canBus.send(encodeSetResponse(m_nodeId, response));
         }
         return;
     }
 
-    const IoStatus writeStatus = io->write(request.value);
-    if (writeStatus != IoStatus::Ok)
+    const IoWriteResult written = io->write(request.value);
+    if (!written)
     {
         if (frameId.node != CUSTOM_CAN_BROADCAST_NODE)
         {
-            const CustomCanValueResponse response{toCanStatus(writeStatus), request.io, 0};
+            const CustomCanValueResponse response{
+                .status = toCanStatus(written.error()), .io = request.io, .value = 0};
             std::ignore = m_canBus.send(encodeSetResponse(m_nodeId, response));
         }
         return;
@@ -143,13 +153,8 @@ void CanDispatcher::handleSetRequest(const CanMessage& message, const CustomCanF
     if (frameId.node == CUSTOM_CAN_BROADCAST_NODE)
         return;
 
-    uint32_t readback = 0;
-    const IoStatus readStatus = io->read(readback);
-    const CustomCanValueResponse response =
-        (readStatus == IoStatus::Ok)
-            ? CustomCanValueResponse{CustomCanStatus::Ok, request.io, readback}
-            : CustomCanValueResponse{toCanStatus(readStatus), request.io, 0};
-    std::ignore = m_canBus.send(encodeSetResponse(m_nodeId, response));
+    std::ignore =
+        m_canBus.send(encodeSetResponse(m_nodeId, toValueResponse(io->read(), request.io)));
 }
 
 void CanDispatcher::handleGetRequest(const CanMessage& message, const CustomCanFrameId& frameId)
@@ -160,8 +165,10 @@ void CanDispatcher::handleGetRequest(const CanMessage& message, const CustomCanF
     const auto decoded = decodeGetRequest(message);
     if (!decoded)
     {
-        std::ignore = m_canBus.send(encodeGetResponse(
-            m_nodeId, {CustomCanStatus::MalformedPayload, malformedIoAddress(message), 0}));
+        std::ignore = m_canBus.send(
+            encodeGetResponse(m_nodeId, {.status = CustomCanStatus::MalformedPayload,
+                                         .io = malformedIoAddress(message),
+                                         .value = 0}));
         return;
     }
     const CustomCanGetRequest& request = *decoded;
@@ -169,22 +176,21 @@ void CanDispatcher::handleGetRequest(const CanMessage& message, const CustomCanF
     const std::optional<IoType> ioType = toIoType(request.io.type);
     if (!ioType)
     {
-        std::ignore = m_canBus.send(
-            encodeGetResponse(m_nodeId, {CustomCanStatus::UnknownIoType, request.io, 0}));
+        std::ignore = m_canBus.send(encodeGetResponse(
+            m_nodeId, {.status = CustomCanStatus::UnknownIoType, .io = request.io, .value = 0}));
         return;
     }
 
     const IVirtualIo* io = m_repository.find(*ioType, request.io.index);
     if (!io)
     {
-        std::ignore = m_canBus.send(
-            encodeGetResponse(m_nodeId, {CustomCanStatus::UnknownIoIndex, request.io, 0}));
+        std::ignore = m_canBus.send(encodeGetResponse(
+            m_nodeId, {.status = CustomCanStatus::UnknownIoIndex, .io = request.io, .value = 0}));
         return;
     }
 
-    uint32_t value = 0;
-    const CustomCanStatus status = toCanStatus(io->read(value));
-    std::ignore = m_canBus.send(encodeGetResponse(m_nodeId, {status, request.io, value}));
+    std::ignore =
+        m_canBus.send(encodeGetResponse(m_nodeId, toValueResponse(io->read(), request.io)));
 }
 
 void CanDispatcher::handleObserveStart(const CanMessage& message,
@@ -196,13 +202,15 @@ void CanDispatcher::handleObserveStart(const CanMessage& message,
     const auto decoded = decodeObserveStart(message);
     if (!decoded)
     {
-        std::ignore = m_canBus.send(encodeObserveResponse(
-            m_nodeId, {CustomCanStatus::MalformedPayload, malformedIoAddress(message), 0}));
+        std::ignore = m_canBus.send(
+            encodeObserveResponse(m_nodeId, {.status = CustomCanStatus::MalformedPayload,
+                                             .io = malformedIoAddress(message),
+                                             .value = 0}));
         return;
     }
     const CustomCanObserveStart& request = *decoded;
-    std::ignore = m_canBus.send(
-        encodeObserveResponse(m_nodeId, {CustomCanStatus::NotSupported, request.io, 0}));
+    std::ignore = m_canBus.send(encodeObserveResponse(
+        m_nodeId, {.status = CustomCanStatus::NotSupported, .io = request.io, .value = 0}));
 }
 
 void CanDispatcher::handleObserveStop(const CanMessage& message,
@@ -214,13 +222,15 @@ void CanDispatcher::handleObserveStop(const CanMessage& message,
     const auto decoded = decodeObserveStop(message);
     if (!decoded)
     {
-        std::ignore = m_canBus.send(encodeObserveResponse(
-            m_nodeId, {CustomCanStatus::MalformedPayload, malformedIoAddress(message), 0}));
+        std::ignore = m_canBus.send(
+            encodeObserveResponse(m_nodeId, {.status = CustomCanStatus::MalformedPayload,
+                                             .io = malformedIoAddress(message),
+                                             .value = 0}));
         return;
     }
     const CustomCanObserveStop& request = *decoded;
-    std::ignore = m_canBus.send(
-        encodeObserveResponse(m_nodeId, {CustomCanStatus::NotSupported, request.io, 0}));
+    std::ignore = m_canBus.send(encodeObserveResponse(
+        m_nodeId, {.status = CustomCanStatus::NotSupported, .io = request.io, .value = 0}));
 }
 
 }

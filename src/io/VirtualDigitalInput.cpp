@@ -19,15 +19,14 @@ uint8_t VirtualDigitalInput::ioIndex() const
     return m_index;
 }
 
-IoStatus VirtualDigitalInput::read(uint32_t& value) const
+IoReadResult VirtualDigitalInput::read() const
 {
-    value = m_input.read() ? 1u : 0u;
-    return IoStatus::Ok;
+    return m_input.read() ? 1u : 0u;
 }
 
-IoStatus VirtualDigitalInput::write(uint32_t)
+IoWriteResult VirtualDigitalInput::write(uint32_t)
 {
-    return IoStatus::NotSupported;
+    return std::unexpected{IoStatus::NotSupported};
 }
 
 }

@@ -19,20 +19,17 @@ uint8_t VirtualAdcInput::ioIndex() const
     return m_index;
 }
 
-IoStatus VirtualAdcInput::read(uint32_t& value) const
+IoReadResult VirtualAdcInput::read() const
 {
     const auto millivolts = m_input.readMillivolts();
     if (!millivolts)
-    {
-        return IoStatus::ReadError;
-    }
-    value = *millivolts;
-    return IoStatus::Ok;
+        return std::unexpected{IoStatus::ReadError};
+    return *millivolts;
 }
 
-IoStatus VirtualAdcInput::write(uint32_t)
+IoWriteResult VirtualAdcInput::write(uint32_t)
 {
-    return IoStatus::NotSupported;
+    return std::unexpected{IoStatus::NotSupported};
 }
 
 }

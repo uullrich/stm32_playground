@@ -1,18 +1,20 @@
 #pragma once
 
 #include "IButton.h"
+#include "SysTickClock.h"
 #include "stm32f7xx_hal.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 
 namespace uullrich::playground
 {
 
-class Button : public IButton
+class Button final : public IButton
 {
   public:
-    Button(uint16_t pin, uint32_t debounceMs);
+    explicit Button(uint16_t pin, std::chrono::milliseconds debounce);
 
     Button(const Button&) = delete;
     Button& operator=(const Button&) = delete;
@@ -22,8 +24,8 @@ class Button : public IButton
 
   private:
     uint16_t m_pin;
-    uint32_t m_debounceMs;
-    uint32_t m_lastPressTick{0};
+    std::chrono::milliseconds m_debounce;
+    SysTickClock::time_point m_lastPress{};
     std::atomic<bool> m_pressed{false};
 };
 

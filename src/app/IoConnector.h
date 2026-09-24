@@ -13,11 +13,14 @@
 namespace uullrich::playground
 {
 
-class IoConnector : public IIoWriteListener
+class IoConnector final : public IIoWriteListener
 {
   public:
-    IoConnector(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6, IPwmOutput& ld1,
-            IAdcInput& adcPoti, IAdcInput& adcAnode);
+    explicit IoConnector(IDigitalOutput& ld2, IDigitalOutput& ld3, IDigitalOutput& d6,
+                         IPwmOutput& ld1, IAdcInput& adcPoti, IAdcInput& adcAnode);
+
+    IoConnector(const IoConnector&) = delete;
+    IoConnector& operator=(const IoConnector&) = delete;
 
     [[nodiscard]] IIoRepository& repository();
 

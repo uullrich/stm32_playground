@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <span>
 
@@ -13,9 +14,11 @@ class II2cBus
 
     virtual ~II2cBus() = default;
     [[nodiscard]] virtual Status read(uint8_t address, uint16_t registerAddress,
-                                      std::span<uint8_t> data, uint32_t timeoutMs) = 0;
+                                      std::span<uint8_t> data,
+                                      std::chrono::milliseconds timeout) = 0;
     [[nodiscard]] virtual Status write(uint8_t address, uint16_t registerAddress,
-                                       std::span<const uint8_t> data, uint32_t timeoutMs) = 0;
+                                       std::span<const uint8_t> data,
+                                       std::chrono::milliseconds timeout) = 0;
 };
 
 }

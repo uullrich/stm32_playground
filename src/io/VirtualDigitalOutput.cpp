@@ -19,18 +19,17 @@ uint8_t VirtualDigitalOutput::ioIndex() const
     return m_index;
 }
 
-IoStatus VirtualDigitalOutput::read(uint32_t& value) const
+IoReadResult VirtualDigitalOutput::read() const
 {
-    value = m_output.readState() ? 1u : 0u;
-    return IoStatus::Ok;
+    return m_output.readState() ? 1u : 0u;
 }
 
-IoStatus VirtualDigitalOutput::write(uint32_t value)
+IoWriteResult VirtualDigitalOutput::write(uint32_t value)
 {
     if (value > 1)
-        return IoStatus::ValueOutOfRange;
+        return std::unexpected{IoStatus::ValueOutOfRange};
     m_output.set(value != 0);
-    return IoStatus::Ok;
+    return {};
 }
 
 }

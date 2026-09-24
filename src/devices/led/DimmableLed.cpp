@@ -1,5 +1,12 @@
 #include "DimmableLed.h"
 
+#include <algorithm>
+
+namespace
+{
+constexpr uint8_t MAX_PERCENT = 100;
+}
+
 namespace uullrich::playground
 {
 
@@ -31,9 +38,7 @@ void DimmableLed::toggle()
 
 void DimmableLed::setBrightnessPercent(uint8_t percent)
 {
-    if (percent > 100)
-        percent = 100;
-    m_output.setPulse(m_output.period() * percent / 100);
+    m_output.setPulse(m_output.period() * std::min(percent, MAX_PERCENT) / MAX_PERCENT);
 }
 
 }

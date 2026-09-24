@@ -8,10 +8,10 @@
 namespace uullrich::playground
 {
 
-class PwmOutput : public IPwmOutput
+class PwmOutput final : public IPwmOutput
 {
   public:
-    PwmOutput(TIM_HandleTypeDef& timer, uint32_t channel, uint32_t period);
+    explicit PwmOutput(TIM_HandleTypeDef& timer, uint32_t channel, uint32_t period);
 
     PwmOutput(const PwmOutput&) = delete;
     PwmOutput& operator=(const PwmOutput&) = delete;

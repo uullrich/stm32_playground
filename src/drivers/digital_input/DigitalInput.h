@@ -8,10 +8,14 @@
 namespace uullrich::playground
 {
 
-class DigitalInput : public IDigitalInput
+class DigitalInput final : public IDigitalInput
 {
   public:
-    DigitalInput(GPIO_TypeDef& port, uint16_t pin);
+    explicit DigitalInput(GPIO_TypeDef& port, uint16_t pin);
+
+    DigitalInput(const DigitalInput&) = delete;
+    DigitalInput& operator=(const DigitalInput&) = delete;
+
     [[nodiscard]] bool read() override;
 
   private:

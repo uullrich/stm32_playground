@@ -1,5 +1,5 @@
 #include "SimulatedVl53l1xBus.h"
-#include "stm32f7xx_hal.h"
+#include "SysTickClock.h"
 
 #include <algorithm>
 
@@ -16,14 +16,15 @@ SimulatedVl53l1xBus::SimulatedVl53l1xBus()
 }
 
 II2cBus::Status SimulatedVl53l1xBus::transfer(uint8_t address, uint16_t registerAddress,
-                                            std::size_t count, uint32_t timeoutMs)
+                                            std::size_t count, std::chrono::milliseconds timeout)
 {
     ++calls;
     if (address != 0x29 || count == 0 || registerAddress + count > registers.size() ||
-        timeoutMs == 0 || timeoutMs > 10)
+        timeout <= std::chrono::milliseconds::zero() ||
+        timeout > std::chrono::milliseconds{10})
         return Status::InvalidArgument;
-    HAL_Delay(std::min(transferDurationMs, timeoutMs));
-    if (transferDurationMs >= timeoutMs)
+    delay(std::min(transferDuration, timeout));
+    if (transferDuration >= timeout)
         return Status::Timeout;
     if (calls == failAtCall)
         return failure;
@@ -31,9 +32,10 @@ II2cBus::Status SimulatedVl53l1xBus::transfer(uint8_t address, uint16_t register
 }
 
 II2cBus::Status SimulatedVl53l1xBus::read(uint8_t address, uint16_t registerAddress,
-                                        std::span<uint8_t> data, uint32_t timeoutMs)
+                                        std::span<uint8_t> data,
+                                        std::chrono::milliseconds timeout)
 {
-    const auto status = transfer(address, registerAddress, data.size(), timeoutMs);
+    const auto status = transfer(address, registerAddress, data.size(), timeout);
     if (status != Status::Ok)
         return status;
     std::copy_n(registers.begin() + registerAddress, data.size(), data.begin());
@@ -46,9 +48,10 @@ II2cBus::Status SimulatedVl53l1xBus::read(uint8_t address, uint16_t registerAddr
 }
 
 II2cBus::Status SimulatedVl53l1xBus::write(uint8_t address, uint16_t registerAddress,
-                                         std::span<const uint8_t> data, uint32_t timeoutMs)
+                                         std::span<const uint8_t> data,
+                                         std::chrono::milliseconds timeout)
 {
-    const auto status = transfer(address, registerAddress, data.size(), timeoutMs);
+    const auto status = transfer(address, registerAddress, data.size(), timeout);
     if (status != Status::Ok)
         return status;
     std::copy(data.begin(), data.end(), registers.begin() + registerAddress);
